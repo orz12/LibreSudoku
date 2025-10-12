@@ -142,19 +142,22 @@ class AdvancedHint(
         return null
     }
 
-    // TODO: Add boxes
     private fun checkForHiddenSingle(): AdvancedHintData? {
         if (notes.isEmpty()) return null
         val singlesInRow = notes.groupBy { Pair(it.row, it.value) }
             .filter { it.value.size == 1 }
             .map { it.value }
             .randomOrNull()
-        val singlesInColumn = notes.groupBy { Pair(it.row, it.value) }
+        val singlesInColumn = notes.groupBy { Pair(it.col, it.value) }
+            .filter { it.value.size == 1 }
+            .map { it.value }
+            .randomOrNull()
+        val singlesInBox = notes.groupBy { Pair(getBoxNumber(it.row, it.col), it.value) }
             .filter { it.value.size == 1 }
             .map { it.value }
             .randomOrNull()
 
-        val pickedSingle = setOf(singlesInRow, singlesInColumn).randomOrNull() ?: return null
+        val pickedSingle = setOfNotNull(singlesInRow, singlesInColumn, singlesInBox).randomOrNull() ?: return null
         return if (pickedSingle.isNotEmpty()) {
             val hiddenSingle = pickedSingle.first()
             val cell = solvedBoard[hiddenSingle.row][hiddenSingle.col]
@@ -191,6 +194,13 @@ class AdvancedHint(
         return transposedBoard.toList()
     }
 
+    private fun getBoxNumber(row: Int, col: Int): Int {
+        val sectionRow = row / type.sectionHeight
+        val sectionColumn = col / type.sectionWidth
+        val sectorsPerRow = type.size / type.sectionWidth
+        return sectionRow * sectorsPerRow + sectionColumn
+    }
+
     private fun getBoxes(): List<List<Cell>> {
         val size = type.size
         val sectionWidth = type.sectionWidth
@@ -199,10 +209,7 @@ class AdvancedHint(
         val boxes = MutableList(sectionWidth * sectionHeight) { mutableListOf<Cell>() }
         for (i in 0 until size) {
             for (j in 0 until size) {
-                val sectionRow = i / sectionHeight
-                val sectionColumn = j / sectionWidth
-                val sectorsPerRow = size / sectionWidth
-                val boxNumber = sectionRow * sectorsPerRow + sectionColumn
+                val boxNumber = getBoxNumber(i, j)
                 boxes[boxNumber].add(board[i][j])
             }
         }
