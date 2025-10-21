@@ -163,6 +163,7 @@ private fun BoardPreviewPreview() {
                     altForegroundColor = BoardColors.altForegroundColor,
                     errorColor = BoardColors.errorColor,
                     highlightColor = BoardColors.highlightColor,
+                    highlightTargetColor = BoardColors.highlightTargetColor,
                     thickLineColor = BoardColors.thickLineColor,
                     thinLineColor = BoardColors.thinLineColor
                 )

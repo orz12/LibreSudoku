@@ -104,6 +104,17 @@ class AppSettingsManager(context: Context) {
     private val ahNakedSingle = booleanPreferencesKey("ah_naked_single")
     private val ahHiddenSingle = booleanPreferencesKey("ah_hidden_single")
     private val ahCheckWrongValue = booleanPreferencesKey("ah_check_wrong_value")
+    private val ahCheckMissingOrWrongNote = booleanPreferencesKey("ah_check_missing_or_wrong_note")
+    private val ahLockedCandidates = booleanPreferencesKey("ah_locked_candidates")
+    private val ahNakedSubsets = booleanPreferencesKey("ah_naked_subsets")
+    private val ahHiddenSubsets = booleanPreferencesKey("ah_hidden_subsets")
+    private val ahXWings = booleanPreferencesKey("ah_x_wings")
+    private val ahXYWings = booleanPreferencesKey("ah_xy_wings")
+    private val ahXYZWings = booleanPreferencesKey("ah_xyz_wings")
+    private val ahWWings = booleanPreferencesKey("ah_w_wings")
+    private val ahXYChain = booleanPreferencesKey("ah_xy_chain")
+    private val ahFishPatterns = booleanPreferencesKey("ah_fish_patterns")
+    private val ahFinnedFishVariants = booleanPreferencesKey("ah_finned_fish_variants")
 
     private val autoUpdateChannelKey = intPreferencesKey("auto_update")
     private val updateDismissedNameKey = stringPreferencesKey("update_dismissed_name") // name of the update that was dismissed
@@ -407,12 +418,34 @@ class AppSettingsManager(context: Context) {
         val nakedSingle = settings[ahNakedSingle] ?: true
         val hiddenSingle = settings[ahHiddenSingle] ?: true
         val checkWrongValue = settings[ahCheckWrongValue] ?: true
+        val checkMissingOrWrongNote = settings[ahCheckMissingOrWrongNote] ?: true
+        val lockedCandidates = settings[ahLockedCandidates] ?: true
+        val nakedSubsets = settings[ahNakedSubsets] ?: true
+        val hiddenSubsets = settings[ahHiddenSubsets] ?: true
+        val xWings = settings[ahXWings] ?: true
+        val xyWings = settings[ahXYWings] ?: true
+        val xyzWings = settings[ahXYZWings] ?: true
+        val wWings = settings[ahWWings] ?: true
+        val xyChain = settings[ahXYChain] ?: true
+        val fishPatterns = settings[ahFishPatterns] ?: true
+        val finnedFishVariants = settings[ahFinnedFishVariants] ?: true
 
         AdvancedHintSettings(
             fullHouse = fullHouse,
             nakedSingle = nakedSingle,
             hiddenSingle = hiddenSingle,
-            checkWrongValue = checkWrongValue
+            checkWrongValue = checkWrongValue,
+            checkMissingOrWrongNote = checkMissingOrWrongNote,
+            lockedCandidates = lockedCandidates,
+            nakedSubsets = nakedSubsets,
+            hiddenSubsets = hiddenSubsets,
+            xWings = xWings,
+            xyWings = xyWings,
+            xyzWings = xyzWings,
+            wWings = wWings,
+            xyChain = xyChain,
+            fishPatterns = fishPatterns,
+            finnedFishVariants = finnedFishVariants
         )
     }
 
@@ -422,6 +455,17 @@ class AppSettingsManager(context: Context) {
             settings[ahNakedSingle] = ahSettings.nakedSingle
             settings[ahHiddenSingle] = ahSettings.hiddenSingle
             settings[ahCheckWrongValue] = ahSettings.checkWrongValue
+            settings[ahCheckMissingOrWrongNote] = ahSettings.checkMissingOrWrongNote
+            settings[ahLockedCandidates] = ahSettings.lockedCandidates
+            settings[ahNakedSubsets] = ahSettings.nakedSubsets
+            settings[ahHiddenSubsets] = ahSettings.hiddenSubsets
+            settings[ahXWings] = ahSettings.xWings
+            settings[ahXYWings] = ahSettings.xyWings
+            settings[ahXYZWings] = ahSettings.xyzWings
+            settings[ahWWings] = ahSettings.wWings
+            settings[ahXYChain] = ahSettings.xyChain
+            settings[ahFishPatterns] = ahSettings.fishPatterns
+            settings[ahFinnedFishVariants] = ahSettings.finnedFishVariants
         }
     }
 

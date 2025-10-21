@@ -104,6 +104,7 @@ fun Board(
     questions: Boolean = false,
     renderNotes: Boolean = true,
     cellsToHighlight: List<Cell>? = null,
+    cellsToHighlightTarget: List<Cell>? = null,
     notesToHighlight: List<Note> = emptyList(),
     zoomable: Boolean = false,
     boardColors: SudokuBoardColors = LocalBoardColors.current,
@@ -133,6 +134,7 @@ fun Board(
 
         // highlight (cells)
         val highlightColor = boardColors.highlightColor
+        val highlightTargetColor = boardColors.highlightTargetColor
 
         val vertThick by remember(size) { mutableIntStateOf(floor(sqrt(size.toFloat())).toInt()) }
         val horThick by remember(size) { mutableIntStateOf(ceil(sqrt(size.toFloat())).toInt()) }
@@ -381,6 +383,23 @@ fun Board(
                 )
             }
 
+            cellsToHighlightTarget?.forEach {
+                drawRoundCell(
+                    row = it.row,
+                    col = it.col,
+                    gameSize = size,
+                    color = highlightTargetColor.copy(alpha = 0.45f),
+                    rect = Rect(
+                        Offset(
+                            x = it.col * cellSize,
+                            y = it.row * cellSize
+                        ),
+                        size = Size(cellSize, cellSize)
+                    ),
+                    cornerRadius = cornerRadius
+                )
+            }
+
             drawBoardFrame(
                 thickLineColor = thickLineColor,
                 thickLineWidth = thickLineWidth,
@@ -505,6 +524,7 @@ private fun BoardPreviewLight() {
                     altForegroundColor = BoardColors.altForegroundColor,
                     errorColor = BoardColors.errorColor,
                     highlightColor = BoardColors.highlightColor,
+                    highlightTargetColor = BoardColors.highlightTargetColor,
                     thickLineColor = BoardColors.thickLineColor,
                     thinLineColor = BoardColors.thinLineColor
                 )

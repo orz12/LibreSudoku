@@ -122,6 +122,160 @@ fun SettingsAdvancedHintScreen(
                 )
             }
             item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_missing_or_wrong_note_title),
+                    checked = advancedHintSettings.checkMissingOrWrongNote,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                checkMissingOrWrongNote = !advancedHintSettings.checkMissingOrWrongNote
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_locked_candidates_title),
+                    checked = advancedHintSettings.lockedCandidates,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                lockedCandidates = !advancedHintSettings.lockedCandidates
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_naked_subsets_title),
+                    checked = advancedHintSettings.nakedSubsets,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                nakedSubsets = !advancedHintSettings.nakedSubsets
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_hidden_subsets_title),
+                    checked = advancedHintSettings.hiddenSubsets,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                hiddenSubsets = !advancedHintSettings.hiddenSubsets
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_x_wing_title),
+                    checked = advancedHintSettings.xWings,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                xWings = !advancedHintSettings.xWings
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_xy_wing_title),
+                    checked = advancedHintSettings.xyWings,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                xyWings = !advancedHintSettings.xyWings
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_xyz_wing_title),
+                    checked = advancedHintSettings.xyzWings,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                xyzWings = !advancedHintSettings.xyzWings
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_w_wing_title),
+                    checked = advancedHintSettings.wWings,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                wWings = !advancedHintSettings.wWings
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_xy_chain_title),
+                    checked = advancedHintSettings.xyChain,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                xyChain = !advancedHintSettings.xyChain
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_fish_patterns_title),
+                    checked = advancedHintSettings.fishPatterns,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                fishPatterns = !advancedHintSettings.fishPatterns
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_finned_fish_variants_title),
+                    checked = advancedHintSettings.finnedFishVariants,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                finnedFishVariants = !advancedHintSettings.finnedFishVariants
+                            )
+                        )
+                    }
+                )
+            }
+            /*
+      val lockedCandidates: Boolean = true,
+  val nakedSubsets: Boolean = true,
+  val hiddenSubsets: Boolean = true,
+  val xWings: Boolean = true,
+  val xyWings: Boolean = true,
+  val xyzWings: Boolean = true,
+  val wWings: Boolean = true,
+  val fishPatterns: Boolean = true,
+  val finnedFishVariants: Boolean = true,
+   */
+            item {
                 Column(
                     modifier = Modifier
                         .padding(horizontal = 16.dp, vertical = 8.dp)

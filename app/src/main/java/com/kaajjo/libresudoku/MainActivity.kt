@@ -132,6 +132,7 @@ class MainActivity : AppCompatActivity() {
                             altForegroundColor = BoardColors.altForegroundColor,
                             errorColor = BoardColors.errorColor,
                             highlightColor = BoardColors.highlightColor,
+                            highlightTargetColor = BoardColors.highlightTargetColor,
                             thickLineColor = BoardColors.thickLineColor,
                             thinLineColor = BoardColors.thinLineColor
                         )
@@ -142,6 +143,7 @@ class MainActivity : AppCompatActivity() {
                             altForegroundColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             errorColor = BoardColors.errorColor,
                             highlightColor = MaterialTheme.colorScheme.outline,
+                            highlightTargetColor = MaterialTheme.colorScheme.primary,
                             thickLineColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.55f),
                             thinLineColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.25f)
                         )

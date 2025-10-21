@@ -35,6 +35,10 @@ object BoardColors {
         @Composable
         get() = MaterialTheme.colorScheme.secondary
 
+    inline val highlightTargetColor: Color
+        @Composable
+        get() = MaterialTheme.colorScheme.primary
+
     inline val thickLineColor: Color
         @Composable
         get() = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.55f)
@@ -50,6 +54,7 @@ interface SudokuBoardColors {
     val altForegroundColor: Color
     val errorColor: Color
     val highlightColor: Color
+    val highlightTargetColor: Color
     val thickLineColor: Color
     val thinLineColor: Color
 }
@@ -60,6 +65,7 @@ class SudokuBoardColorsImpl(
     override val altForegroundColor: Color = Color.White,
     override val errorColor: Color = Color.White,
     override val highlightColor: Color = Color.White,
+    override val highlightTargetColor: Color = Color.White,
     override val thickLineColor: Color = Color.White,
     override val thinLineColor: Color = Color.White,
 ) : SudokuBoardColors

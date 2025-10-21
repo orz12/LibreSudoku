@@ -371,7 +371,8 @@ fun GameScreen(
                     zoomable = viewModel.gameType == GameType.Default12x12 || viewModel.gameType == GameType.Killer12x12,
                     crossHighlight = crossHighlight,
                     cages = viewModel.cages,
-                    cellsToHighlight = if (advancedHintMode && advancedHintData != null) advancedHintData!!.helpCells + advancedHintData!!.targetCell else null
+                    cellsToHighlight = if (advancedHintMode && advancedHintData != null) advancedHintData!!.helpCells else null,
+                    cellsToHighlightTarget = if (advancedHintMode && advancedHintData != null) advancedHintData!!.targetCells else null
                 )
             }
 
@@ -401,7 +402,7 @@ fun GameScreen(
                                     R.string.advanced_hint_no_hint,
                                     emptyList()
                                 ),
-                                targetCell = Cell(-1, -1, 0),
+                                targetCells = emptyList(),
                                 helpCells = emptyList()
                             ),
                             onApplyClick = null,

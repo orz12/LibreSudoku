@@ -235,6 +235,9 @@ class GameViewModel @Inject constructor(
     private var _cellsToHighlight = MutableStateFlow<List<Cell>>(emptyList())
     val cellsToHighlight = _cellsToHighlight.asStateFlow()
 
+    private var _cellsToHighlightTarget = MutableStateFlow<List<Cell>>(emptyList())
+    val cellsToHighlightTarget = _cellsToHighlightTarget.asStateFlow()
+
     private var _advancedHintText = MutableStateFlow("")
     val advancedHintText = _advancedHintText.asStateFlow()
 
@@ -415,6 +418,17 @@ class GameViewModel @Inject constructor(
                 remainingUsesList = countRemainingUses(gameBoard)
             }
         }
+    }
+
+    fun setNotes(notesToAdd: List<Note>?, notesToRemove: List<Note>?) {
+        if (notesToAdd != null) {
+            notes = notes.plus(notesToAdd).distinct()
+            notesTaken += notesToAdd.size
+        }
+        if (notesToRemove != null) {
+            notes = notes.minus(notesToRemove)
+        }
+        undoRedoManager.addState(GameState(gameBoard, notes))
     }
 
     private fun setNote(number: Int) {
@@ -797,6 +811,7 @@ class GameViewModel @Inject constructor(
     fun getAdvancedHint() {
         viewModelScope.launch(Dispatchers.Default) {
             currCell = Cell(-1, -1, 0)
+            _advancedHintData.emit(null)
             _advancedHintMode.emit(true)
             val hintSettings = runBlocking { appSettingsManager.advancedHintSettings.first() }
             val advancedHint = AdvancedHint(
@@ -813,18 +828,29 @@ class GameViewModel @Inject constructor(
 
     fun cancelAdvancedHint() {
         viewModelScope.launch(Dispatchers.IO) {
-            _advancedHintData.emit(null)
             _advancedHintMode.emit(false)
+            // delay remove data to allow the UI to animate out
+//            kotlinx.coroutines.delay(300)
+//            _advancedHintData.emit(null)
         }
     }
 
     fun applyAdvancedHint() {
         viewModelScope.launch(Dispatchers.Default) {
-            val cell = _advancedHintData.value?.targetCell
-            if (cell != null) {
-                currCell = gameBoard[cell.row][cell.col]
-                digitFirstNumber = cell.value
-                processInput(cell, true)
+            val cells = _advancedHintData.value?.targetCells
+            val notesToAdd = _advancedHintData.value?.notesToAdd
+            val notesToRemove = _advancedHintData.value?.notesToRemove
+            if (notesToAdd != null || notesToRemove != null) {
+                setNotes(notesToAdd, notesToRemove)
+                cancelAdvancedHint()
+                return@launch
+            }
+            if (cells != null) {
+                for (cell in cells)  {
+                    currCell = gameBoard[cell.row][cell.col]
+                    digitFirstNumber = cell.value
+                    processInput(cell, true)
+                }
                 cancelAdvancedHint()
             }
         }
