@@ -67,7 +67,7 @@
     <string name="action_start">开始</string>
     <string name="toolbar_undo_description">撤销</string>
     <string name="toolbar_notes_description">启用候选数输入（铅笔图标）</string>
-    <string name="toolbar_hint_description">填入该格答案。可在设置中禁用</string>
+    <string name="toolbar_hint_description">提示该格答案。可在设置中禁用</string>
     <string name="first_game_dialog_title">快速浏览</string>
     <string name="toolbar_erase_description">清空该格中的所有数</string>
     <string name="action_stay">留下</string>
@@ -142,11 +142,11 @@
     <string name="sort_label">排序</string>
     <string name="sort_by_timer">计时器</string>
     <string name="sort_ascending">升序</string>
-    <string name="folder_name">文件夹名：%1$s</string>
+    <string name="folder_name">题库名：%1$s</string>
     <string name="delete_folder">删除文件夹</string>
-    <string name="title_folders">文件夹</string>
+    <string name="title_folders">谜题库</string>
     <string name="folder_import">导入</string>
-    <string name="create_folder_name">文件夹名</string>
+    <string name="create_folder_name">题库名</string>
     <string name="export">导出</string>
     <string name="edit_name">编辑名称</string>
     <plurals name="puzzles_in_folder">
@@ -156,8 +156,8 @@
         <item quantity="other">要导入 %1$d 个谜题</item>
     </plurals>
     <string name="import_from_file_fail">导入失败</string>
-    <string name="folders_help">在这里，您可以管理文件夹并从文件导入数独</string>
-    <string name="dialog_delete_folder_text">名为 %1$s 的文件夹将被删除</string>
+    <string name="folders_help">在这里，您可以管理谜题库并从文件导入数独</string>
+    <string name="dialog_delete_folder_text">名为 %1$s 的谜题库将被删除</string>
     <string name="action_edit">编辑</string>
     <string name="import_saving">保存中</string>
     <string name="game_id">游戏 #%1$d</string>
@@ -193,24 +193,26 @@
     <string name="pref_crash_reporting">报告崩溃日志</string>
     <string name="dialog_crash_report_text">LibreSudoku 崩溃了。您想要向开发人员发送崩溃日志吗\?</string>
     <string name="pref_cross_highlight_subtitle">在纸板上标出一些方框</string>
-    <string name="move_games_to_folder_subtitle">选择要移动所选游戏的文件夹</string>
+    <string name="move_games_to_folder_subtitle">选择要移动所选谜题的谜题库</string>
     <string name="help">帮助</string>
     <string name="explore_folder_add_sudoku">添加数独</string>
     <string name="pref_date_format">日期格式</string>
     <string name="pref_boardtheme_accent_subtitle">让数独板更丰富多彩</string>
     <string name="export_string_title">导出为字符串</string>
-    <string name="add_to_folder">添加到文件夹</string>
+    <string name="add_to_folder">添加谜题</string>
     <string name="import_from_file_title">自文件导入</string>
     <plurals name="delete_selected_in_folder">
         <item quantity="other">您确定要删除 %1$d 个游戏吗？</item>
     </plurals>
+    <string name="no_folder_label">你可以在此新建或导入谜题库</string>
+    <string name="add_folder">新增谜题库</string>
     <string name="dialog_delete_selected">删除所选</string>
     <string name="folder_import_supported_types">支持以下文件类型:
 \n.sdm (或具有相同结构的 .txt)
 \n.opensudoku
 \n.1gsudoku</string>
-    <string name="folder_empty_label">这个文件夹是空的</string>
-    <string name="create_folder">新建文件夹</string>
+    <string name="folder_empty_label">这个谜题库是空的</string>
+    <string name="create_folder">新建谜题库</string>
     <string name="help_translate">帮助翻译</string>
     <string name="sort_descending">降序</string>
     <string name="filter_not_started">未开始</string>
@@ -218,6 +220,9 @@
     <string name="custom_sudoku_no_added">您还没有添加任何数独游戏</string>
     <string name="create_import_set">设置</string>
     <string name="export_string_text">从输入框中选择文本或单击复制按钮</string>
+    <string name="no_solution_hint">无解</string>
+    <string name="unique_solution_hint">唯一解</string>
+    <string name="multiple_solution_hint">多解</string>
     <string name="no_solution_text">这个谜题没有解法</string>
     <string name="create_from_string_text">输入一个字符串形式的谜题。空单元格用\". \"或 \"0 \"表示</string>
     <string name="multiple_solution_text">这个谜题有不止一种解法。正确的数独必须有唯一解</string>
@@ -279,7 +284,7 @@
     <string name="date_last_played">最后一次游戏的日期</string>
     <string name="backup_option_settings">设置</string>
     <string name="create_backup_description">创建备份文件</string>
-    <string name="backup_option_games">游戏和文件夹</string>
+    <string name="backup_option_games">游戏和谜题库</string>
     <string name="restore_description">从文件还原</string>
     <string name="action_create_backup">备份</string>
     <string name="auto_backups_frequency">备份频率</string>
@@ -331,7 +336,7 @@
     <string name="action_restart_app">重启应用</string>
     <string name="crash_screen_title">哎呀，出了点问题</string>
     <string name="about_github_source_code">GitHub 上的源码</string>
-    <string name="action_generate">生成</string>
+    <string name="action_generate">批量生成</string>
     <string name="generating_number_of">生成 %1$s/%2$s</string>
     <string name="type_killer_9x9">杀手 9x9</string>
     <string name="type_killer_6x6">杀手 6x6</string>
@@ -362,7 +367,7 @@
     <string name="hint_full_house_group_title">唯一候选数</string>
     <string name="font_size_automatic">自动</string>
     <string name="advanced_hint_title">进阶提示</string>
-    <string name="advanced_hint_in_development">更多技巧正在开发中…</string>
+    <string name="advanced_hint_in_development">更多进阶技巧正在开发中…</string>
     <string name="check_for_update_error_summary">请检查您的连接或稍后重试（可能已超过GitHub API速率限制）</string>
     <string name="check_for_update_using_latest">当前是最新的</string>
     <string name="hint_naked_single_detail">单元格%1$s只有唯一的候选数%2$s可供填入</string>

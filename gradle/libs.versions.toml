@@ -29,6 +29,7 @@ foundationAndroid = "1.7.5"
 graphicsShape = "1.0.1"
 okhttp = "5.0.0-alpha.14"
 composeMarkdown = "0.5.4"
+foundationLayout = "1.9.4"
 
 [libraries]
 # Android App
@@ -90,6 +91,7 @@ serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serializ
 aboutLibraries = { group = "com.mikepenz", name = "aboutlibraries-compose", version.ref = "aboutLibraries" }
 composeMarkdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown"}
 materialKolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
+foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

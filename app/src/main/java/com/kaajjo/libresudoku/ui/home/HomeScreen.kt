@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -58,6 +60,8 @@ import com.kaajjo.libresudoku.core.qqwing.GameDifficulty
 import com.kaajjo.libresudoku.core.qqwing.GameType
 import com.kaajjo.libresudoku.core.utils.toFormattedString
 import com.kaajjo.libresudoku.data.database.model.SavedGame
+import com.kaajjo.libresudoku.destinations.FoldersScreenDestination
+import com.kaajjo.libresudoku.destinations.FoldersScreenDestination.invoke
 import com.kaajjo.libresudoku.destinations.GameScreenDestination
 import com.kaajjo.libresudoku.ui.components.AnimatedNavigation
 import com.kaajjo.libresudoku.ui.components.ScrollbarLazyColumn
@@ -133,24 +137,41 @@ fun HomeScreen(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                HorizontalPicker(
-                    text = stringResource(viewModel.selectedDifficulty.resName),
-                    onLeftClick = { viewModel.changeDifficulty(-1) },
-                    onRightClick = { viewModel.changeDifficulty(1) }
-                )
-                HorizontalPicker(
-                    text = stringResource(viewModel.selectedType.resName),
-                    onLeftClick = { viewModel.changeType(-1) },
-                    onRightClick = { viewModel.changeType(1) }
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    modifier = Modifier
+                        .padding(20.dp,10.dp), // 容器内边距
+                    horizontalArrangement = Arrangement.Center, // 按钮水平间距
+                    // verticalArrangement = Arrangement.spacedBy(8.dp) // 换行后垂直间距
                 ) {
+                    HorizontalPicker(
+                        text = stringResource(viewModel.selectedDifficulty.resName),
+                        onLeftClick = { viewModel.changeDifficulty(-1) },
+                        onRightClick = { viewModel.changeDifficulty(1) }
+                    )
+                    HorizontalPicker(
+                        text = stringResource(viewModel.selectedType.resName),
+                        onLeftClick = { viewModel.changeType(-1) },
+                        onRightClick = { viewModel.changeType(1) }
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                FlowRow(
+                    modifier = Modifier
+                        .padding(80.dp,10.dp), // 容器内边距
+                    horizontalArrangement = Arrangement.Center, // 按钮水平间距
+                    // verticalArrangement = Arrangement.spacedBy(8.dp) // 换行后垂直间距
+                ) {
+                    FilledTonalButton(
+                        modifier = Modifier.padding(10.dp),
+                        onClick = {
+                        navigator.navigate(FoldersScreenDestination())
+                    }) {
+                        Text(stringResource(R.string.title_folders))
+                    }
                     if (lastGame != null && !lastGame!!.completed) {
-                        Button(onClick = {
+                        Button(
+                            modifier = Modifier.padding(10.dp),
+                            onClick = {
                             if (lastGames.size <= 1) {
                                 lastGame?.let {
                                     navigator.navigate(
@@ -166,13 +187,17 @@ fun HomeScreen(
                         }) {
                             Text(stringResource(R.string.action_continue))
                         }
-                        FilledTonalButton(onClick = {
+                        FilledTonalButton(
+                            modifier = Modifier.padding(10.dp),
+                            onClick = {
                             continueGameDialog = true
                         }) {
                             Text(stringResource(R.string.action_play))
                         }
                     } else {
-                        Button(onClick = {
+                        Button(
+                            modifier = Modifier.padding(10.dp),
+                            onClick = {
                             viewModel.giveUpLastGame()
                             viewModel.startGame()
                         }) {
@@ -220,7 +245,10 @@ fun HomeScreen(
         }
 
         if (lastGamesBottomSheet) {
-            ModalBottomSheet(onDismissRequest = { lastGamesBottomSheet = false }) {
+            ModalBottomSheet(
+                sheetMaxWidth = 400.dp,
+                onDismissRequest = { lastGamesBottomSheet = false }
+            ) {
                 Text(
                     text = pluralStringResource(
                         id = R.plurals.last_x_games,
@@ -302,7 +330,7 @@ fun HorizontalPicker(
 ) {
     Row(
         modifier = modifier
-            .fillMaxWidth()
+            .width(width = 300.dp)
             .padding(vertical = 8.dp, horizontal = 36.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween

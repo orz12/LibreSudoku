@@ -1,6 +1,7 @@
 package com.kaajjo.libresudoku.ui.create_edit_sudoku
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.TextUnit
@@ -61,6 +62,7 @@ class CreateSudokuViewModel @Inject constructor(
                         gameType = board.type
                     }
                 }
+                solutionCount = checkGame().second
             }
         }
     }
@@ -81,6 +83,7 @@ class CreateSudokuViewModel @Inject constructor(
 
     var multipleSolutionsDialog by mutableStateOf(false)
     var noSolutionsDialog by mutableStateOf(false)
+    var solutionCount by mutableIntStateOf(2)
 
 
     var gameType by mutableStateOf(GameType.Default9x9)
@@ -156,6 +159,7 @@ class CreateSudokuViewModel @Inject constructor(
             gameBoard = setValueCell(
                 if (gameBoard[currCell.row][currCell.col].value == number) 0 else number
             )
+            solutionCount = checkGame().second
         }
     }
 
@@ -195,6 +199,7 @@ class CreateSudokuViewModel @Inject constructor(
                 if (undoRedoManager.canUndo()) {
                     gameBoard = undoRedoManager.undo().board
                     checkMistakes()
+                    solutionCount = checkGame().second
                 }
             }
 
@@ -204,6 +209,7 @@ class CreateSudokuViewModel @Inject constructor(
                         gameBoard = it.board
                     }
                     checkMistakes()
+                    solutionCount = checkGame().second
                 }
             }
 
@@ -215,6 +221,7 @@ class CreateSudokuViewModel @Inject constructor(
                         undoRedoManager.addState(GameState(getBoardNoRef(), emptyList()))
                     }
                     checkMistakes()
+                    solutionCount = checkGame().second
                 }
             }
 
@@ -260,6 +267,9 @@ class CreateSudokuViewModel @Inject constructor(
                 board = puzzle,
                 gameType = gameType
             )
+            undoRedoManager.addState(GameState(getBoardNoRef(), emptyList()))
+            checkMistakes()
+            solutionCount = checkGame().second
             return true
         } else {
             return false

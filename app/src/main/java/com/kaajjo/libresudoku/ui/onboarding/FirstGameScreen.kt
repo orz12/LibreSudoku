@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -141,6 +144,18 @@ fun FirstGameScreen() {
             Text(
                 modifier = Modifier.weight(1f),
                 text = stringResource(R.string.toolbar_erase_description)
+            )
+        }
+        ToolRow {
+            ToolbarItem(
+                modifier = Modifier.weight(toolbarWeight),
+                painter = rememberVectorPainter(Icons.Rounded.AutoAwesome),
+                onClick = { }
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                modifier = Modifier.weight(1f),
+                text = stringResource(R.string.advanced_hint_in_development)
             )
         }
         Spacer(modifier = Modifier.height(8.dp))

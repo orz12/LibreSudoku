@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
@@ -33,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
@@ -126,51 +128,57 @@ fun CreateSudokuScreen(
             val highlightIdentical by viewModel.highlightIdentical.collectAsState(initial = PreferencesConstants.DEFAULT_HIGHLIGHT_IDENTICAL)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                // horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row {
+                Box {
+                    var difficultyMenu by remember { mutableStateOf(false) }
+                    val dropDownIconRotation by animateFloatAsState(if (difficultyMenu) 180f else 0f)
+                    TextButton(onClick = { difficultyMenu = !difficultyMenu }) {
+                        Text(stringResource(viewModel.gameDifficulty.resName))
+                        Icon(
+                            modifier = Modifier.rotate(dropDownIconRotation),
+                            imageVector = Icons.Rounded.ArrowDropDown,
+                            contentDescription = null
+                        )
+                    }
+                    DifficultyMenu(
+                        expanded = difficultyMenu,
+                        onDismissRequest = { difficultyMenu = false },
+                        onClick = {
+                            viewModel.changeGameDifficulty(it)
+                        }
+                    )
+                }
+                // allow changing a game type only when creating a new sudoku
+                if (viewModel.gameUid == -1L) {
                     Box {
-                        var difficultyMenu by remember { mutableStateOf(false) }
-                        val dropDownIconRotation by animateFloatAsState(if (difficultyMenu) 180f else 0f)
-                        TextButton(onClick = { difficultyMenu = !difficultyMenu }) {
-                            Text(stringResource(viewModel.gameDifficulty.resName))
+                        var gameTypeMenuExpanded by remember { mutableStateOf(false) }
+                        val dropDownIconRotation by animateFloatAsState(if (gameTypeMenuExpanded) 180f else 0f)
+                        TextButton(onClick = { gameTypeMenuExpanded = !gameTypeMenuExpanded }) {
+                            Text(stringResource(viewModel.gameType.resName))
                             Icon(
                                 modifier = Modifier.rotate(dropDownIconRotation),
                                 imageVector = Icons.Rounded.ArrowDropDown,
                                 contentDescription = null
                             )
                         }
-                        DifficultyMenu(
-                            expanded = difficultyMenu,
-                            onDismissRequest = { difficultyMenu = false },
+                        GameTypeMenu(
+                            expanded = gameTypeMenuExpanded,
+                            onDismissRequest = { gameTypeMenuExpanded = false },
                             onClick = {
-                                viewModel.changeGameDifficulty(it)
+                                viewModel.changeGameType(it)
                             }
                         )
                     }
-                    // allow changing a game type only when creating a new sudoku
-                    if (viewModel.gameUid == -1L) {
-                        Box {
-                            var gameTypeMenuExpanded by remember { mutableStateOf(false) }
-                            val dropDownIconRotation by animateFloatAsState(if (gameTypeMenuExpanded) 180f else 0f)
-                            TextButton(onClick = { gameTypeMenuExpanded = !gameTypeMenuExpanded }) {
-                                Text(stringResource(viewModel.gameType.resName))
-                                Icon(
-                                    modifier = Modifier.rotate(dropDownIconRotation),
-                                    imageVector = Icons.Rounded.ArrowDropDown,
-                                    contentDescription = null
-                                )
-                            }
-                            GameTypeMenu(
-                                expanded = gameTypeMenuExpanded,
-                                onDismissRequest = { gameTypeMenuExpanded = false },
-                                onClick = {
-                                    viewModel.changeGameType(it)
-                                }
-                            )
-                        }
-                    }
                 }
+                Text(text = when(viewModel.solutionCount){
+                    0 -> stringResource(R.string.no_solution_hint)
+                    1 -> stringResource(R.string.unique_solution_hint)
+                    else -> stringResource(R.string.multiple_solution_hint)
+                })
+                Spacer(modifier = Modifier.weight(1.0f))
+
                 FilledTonalButton(
                     enabled = !viewModel.gameBoard.flatten().all { it.value == 0 },
                     onClick = {

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Help
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddCircleOutline
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CreateNewFolder
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Help
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -82,6 +84,7 @@ import com.kaajjo.libresudoku.destinations.ExploreFolderScreenDestination
 import com.kaajjo.libresudoku.destinations.ImportFromFileScreenDestination
 import com.kaajjo.libresudoku.destinations.SavedGameScreenDestination
 import com.kaajjo.libresudoku.ui.components.AnimatedNavigation
+import com.kaajjo.libresudoku.ui.components.EmptyScreen
 import com.kaajjo.libresudoku.ui.components.ScrollbarLazyColumn
 import com.kaajjo.libresudoku.ui.components.board.BoardPreview
 import com.ramcosta.composedestinations.annotation.Destination
@@ -134,6 +137,8 @@ fun FoldersScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val gamesToImport by viewModel.sudokuListToImport.collectAsStateWithLifecycle()
 
+    var showMenu by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             if (gamesToImport.isEmpty()) {
@@ -153,7 +158,6 @@ fun FoldersScreen(
                         IconButton(onClick = { helpDialog = true }) {
                             Icon(Icons.AutoMirrored.Rounded.Help, contentDescription = null)
                         }
-                        var showMenu by remember { mutableStateOf(false) }
                         Box {
                             IconButton(onClick = { showMenu = !showMenu }) {
                                 Icon(
@@ -303,6 +307,19 @@ fun FoldersScreen(
                         HorizontalDivider()
                     }
                 }
+            } else if (folders.isEmpty() && gamesToImport.isEmpty()) {
+                EmptyScreen(
+                    text = stringResource(R.string.no_folder_label),
+                    content = {
+                        Button(onClick = {
+                            showMenu = true
+                        }) {
+                            Icon(Icons.Rounded.Add, contentDescription = null)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(stringResource(R.string.add_to_folder))
+                        }
+                    }
+                )
             }
         }
     }
