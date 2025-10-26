@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Help
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.rounded.AddCircleOutline
@@ -150,7 +151,7 @@ fun FoldersScreen(
                     },
                     actions = {
                         IconButton(onClick = { helpDialog = true }) {
-                            Icon(Icons.Rounded.Help, contentDescription = null)
+                            Icon(Icons.AutoMirrored.Rounded.Help, contentDescription = null)
                         }
                         var showMenu by remember { mutableStateOf(false) }
                         Box {
@@ -398,7 +399,7 @@ fun FoldersScreen(
     } else if (helpDialog) {
         AlertDialog(
             icon = {
-                Icon(Icons.Rounded.Help, contentDescription = null)
+                Icon(Icons.AutoMirrored.Rounded.Help, contentDescription = null)
             },
             title = { Text(stringResource(R.string.help)) },
             text = {

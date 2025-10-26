@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -55,11 +55,11 @@ fun KeyboardItem(
     val keyboardFontSize = if (remainingUses != null) {
         25.sp
     } else {
-        36.sp
+        30.sp
     }
     Box(
         modifier = modifier
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(12.dp))
             .background(color)
             .combinedClickable(
                 interactionSource = mutableInteractionSource,
@@ -77,20 +77,23 @@ fun KeyboardItem(
             ),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier.padding(7.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+        Box(
+            modifier = Modifier,
         ) {
             Text(
+                modifier = Modifier.padding(9.dp,10.dp).align(Alignment.Center),
                 text = number.toString(16).uppercase(),
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = keyboardFontSize,
             )
+
             if (remainingUses != null) {
                 Text(
                     text = remainingUses.toString(),
-                    fontSize = 11.sp
+                    fontSize = 11.sp,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(bottom = 2.dp, start = 25.dp)
                 )
             }
         }
@@ -110,7 +113,7 @@ fun DefaultGameKeyboard(
     val numbers by remember(size) { mutableStateOf((1..size).toList()) }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
         if (size == GameType.Default12x12.size) {
             // double-height keyboard only for 12x12
@@ -199,9 +202,9 @@ fun SquareGameKeyboard(
     val numbers by remember(size) { mutableStateOf((1..size).toList()) }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
-        val chunkSize = ceil(sqrt(size.toDouble())).toInt()
+        val chunkSize = if (size > 6) ceil(size.toDouble() / 2).toInt() else size
         val chunkedNumbers = numbers.chunked(chunkSize)
         chunkedNumbers.forEachIndexed { index, chunked ->
             AnimatedVisibility(

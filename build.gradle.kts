@@ -8,4 +8,11 @@ plugins {
     alias(libs.plugins.androidLibrary) apply false
     alias(libs.plugins.compose.compiler) apply false
 }
+subprojects {
+    configurations.all {
+        resolutionStrategy {
+            force("androidx.navigation:navigation-compose:2.9.5")
+        }
+    }
+}
 true // Needed to make the Suppress annotation work for the plugins block

@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -103,8 +104,8 @@ fun SelectionDialog(
             Box {
                 val lazyListState = rememberLazyListState()
 
-                if (!lazyListState.isScrolledToStart()) Divider(Modifier.align(Alignment.TopCenter))
-                if (!lazyListState.isScrolledToEnd()) Divider(Modifier.align(Alignment.BottomCenter))
+                if (!lazyListState.isScrolledToStart()) HorizontalDivider(Modifier.align(Alignment.TopCenter))
+                if (!lazyListState.isScrolledToEnd()) HorizontalDivider(Modifier.align(Alignment.BottomCenter))
 
                 ScrollbarLazyColumn(state = lazyListState) {
                     items(entries.toList()) { item ->
@@ -163,8 +164,8 @@ fun DateFormatDialog(
             Box {
                 val lazyListState = rememberLazyListState()
 
-                if (!lazyListState.isScrolledToStart()) Divider(Modifier.align(Alignment.TopCenter))
-                if (!lazyListState.isScrolledToEnd()) Divider(Modifier.align(Alignment.BottomCenter))
+                if (!lazyListState.isScrolledToStart()) HorizontalDivider(Modifier.align(Alignment.TopCenter))
+                if (!lazyListState.isScrolledToEnd()) HorizontalDivider(Modifier.align(Alignment.BottomCenter))
 
                 ScrollbarLazyColumn(state = lazyListState) {
                     items(entries.toList()) { item ->

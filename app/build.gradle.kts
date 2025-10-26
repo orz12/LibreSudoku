@@ -10,12 +10,12 @@ plugins {
 
 android {
     namespace = "com.kaajjo.libresudoku"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.kaajjo.libresudoku"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 22
         versionName = "2.0.2"
 
@@ -62,7 +62,7 @@ android {
         buildConfig = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
+        kotlinCompilerExtensionVersion = "1.5.15"
     }
     packaging {
         resources {
