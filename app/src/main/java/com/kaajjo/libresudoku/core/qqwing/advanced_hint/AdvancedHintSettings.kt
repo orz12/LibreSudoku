@@ -14,6 +14,7 @@ data class AdvancedHintSettings(
     val lockedCandidates: Boolean = true,
     val nakedSubsets: Boolean = true,
     val hiddenSubsets: Boolean = true,
+    val sueDeCoq: Boolean = true,
     val xWings: Boolean = true,
     val xyWings: Boolean = true,
     val xyzWings: Boolean = true,
@@ -22,5 +23,4 @@ data class AdvancedHintSettings(
     val finnedFishVariants: Boolean = true,
     val xChain: Boolean = true,
     val xyChain: Boolean = true,
-    val sueDeCoq: Boolean = true,
 )

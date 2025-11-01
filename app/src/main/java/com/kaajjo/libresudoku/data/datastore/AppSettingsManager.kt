@@ -108,6 +108,7 @@ class AppSettingsManager(context: Context) {
     private val ahLockedCandidates = booleanPreferencesKey("ah_locked_candidates")
     private val ahNakedSubsets = booleanPreferencesKey("ah_naked_subsets")
     private val ahHiddenSubsets = booleanPreferencesKey("ah_hidden_subsets")
+    private val ahSueDeCoq = booleanPreferencesKey("ah_sue_de_coq")
     private val ahXWings = booleanPreferencesKey("ah_x_wings")
     private val ahXYWings = booleanPreferencesKey("ah_xy_wings")
     private val ahXYZWings = booleanPreferencesKey("ah_xyz_wings")
@@ -423,6 +424,7 @@ class AppSettingsManager(context: Context) {
         val lockedCandidates = settings[ahLockedCandidates] ?: true
         val nakedSubsets = settings[ahNakedSubsets] ?: true
         val hiddenSubsets = settings[ahHiddenSubsets] ?: true
+        val sueDeCoq = settings[ahSueDeCoq] ?: true
         val xWings = settings[ahXWings] ?: true
         val xyWings = settings[ahXYWings] ?: true
         val xyzWings = settings[ahXYZWings] ?: true
@@ -441,6 +443,7 @@ class AppSettingsManager(context: Context) {
             lockedCandidates = lockedCandidates,
             nakedSubsets = nakedSubsets,
             hiddenSubsets = hiddenSubsets,
+            sueDeCoq = sueDeCoq,
             xWings = xWings,
             xyWings = xyWings,
             xyzWings = xyzWings,
@@ -462,6 +465,7 @@ class AppSettingsManager(context: Context) {
             settings[ahLockedCandidates] = ahSettings.lockedCandidates
             settings[ahNakedSubsets] = ahSettings.nakedSubsets
             settings[ahHiddenSubsets] = ahSettings.hiddenSubsets
+            settings[ahSueDeCoq] = ahSettings.sueDeCoq
             settings[ahXWings] = ahSettings.xWings
             settings[ahXYWings] = ahSettings.xyWings
             settings[ahXYZWings] = ahSettings.xyzWings

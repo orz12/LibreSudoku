@@ -175,6 +175,19 @@ fun SettingsAdvancedHintScreen(
             }
             item {
                 TechniqueItem(
+                    title = stringResource(R.string.hint_sue_de_coq_title),
+                    checked = advancedHintSettings.sueDeCoq,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                sueDeCoq = !advancedHintSettings.sueDeCoq
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
                     title = stringResource(R.string.hint_x_wing_title),
                     checked = advancedHintSettings.xWings,
                     onClick = {
@@ -277,17 +290,6 @@ fun SettingsAdvancedHintScreen(
                     }
                 )
             }
-            /*
-      val lockedCandidates: Boolean = true,
-  val nakedSubsets: Boolean = true,
-  val hiddenSubsets: Boolean = true,
-  val xWings: Boolean = true,
-  val xyWings: Boolean = true,
-  val xyzWings: Boolean = true,
-  val wWings: Boolean = true,
-  val fishPatterns: Boolean = true,
-  val finnedFishVariants: Boolean = true,
-   */
             item {
                 Column(
                     modifier = Modifier
