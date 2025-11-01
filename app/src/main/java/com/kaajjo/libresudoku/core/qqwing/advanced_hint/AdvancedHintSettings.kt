@@ -18,7 +18,9 @@ data class AdvancedHintSettings(
     val xyWings: Boolean = true,
     val xyzWings: Boolean = true,
     val wWings: Boolean = true,
-    val xyChain: Boolean = true,
     val fishPatterns: Boolean = true,
     val finnedFishVariants: Boolean = true,
+    val xChain: Boolean = true,
+    val xyChain: Boolean = true,
+    val sueDeCoq: Boolean = true,
 )

@@ -69,6 +69,7 @@ import kotlin.math.sqrt
  * @param questions  if enabled, "?" will be shown instead of number in cells (used instead of blur modifier on android < 12)
  * @param renderNotes whether to show notes at all
  * @param cellsToHighlight list of [Cell] to highlight
+ * @param notesToRemoveHightlight list of [Note] to remove highlight
  * @param notesToHighlight list of [Note] to highlight
  * @param zoomable whether to allow zoom and pan the board
  * @param boardColors colors of the board (see [BoardColors])
@@ -105,6 +106,7 @@ fun Board(
     renderNotes: Boolean = true,
     cellsToHighlight: List<Cell>? = null,
     cellsToHighlightTarget: List<Cell>? = null,
+    notesToRemoveHightlight: List<Note> = emptyList(),
     notesToHighlight: List<Note> = emptyList(),
     zoomable: Boolean = false,
     boardColors: SudokuBoardColors = LocalBoardColors.current,
@@ -216,6 +218,14 @@ fun Board(
             )
         }
 
+        val noteRemoveHighlightPaint by remember {
+            mutableStateOf(
+                Paint().apply {
+                    color = errorColor.copy(alpha = 0.3f).toArgb()
+                    isAntiAlias = true
+                }
+            )
+        }
         var killerSumPaint by remember {
             mutableStateOf(
                 Paint().apply {
@@ -453,8 +463,10 @@ fun Board(
                     size = size,
                     paint = notePaint,
                     highlightPaint = noteHighlightPaint,
+                    removeHighlightPaint = noteRemoveHighlightPaint,
                     notes = notes,
                     notesToHighlight = notesToHighlight,
+                    notesToRemoveHightlight = notesToRemoveHightlight,
                     cellSize = cellSize,
                     cellSizeDivWidth = cellSizeDivWidth,
                     killerSumBounds = killerSumBounds

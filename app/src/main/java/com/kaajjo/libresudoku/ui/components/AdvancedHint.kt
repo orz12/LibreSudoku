@@ -3,10 +3,14 @@ package com.kaajjo.libresudoku.ui.components
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.SettingsSuggest
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -16,10 +20,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+//import androidx.compose.runtime.rememberScrollState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.unit.dp
 import com.kaajjo.libresudoku.R
 import com.kaajjo.libresudoku.core.qqwing.advanced_hint.AdvancedHintData
@@ -33,76 +40,94 @@ fun AdvancedHintContainer(
     onBackClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    Column {
-        Row(
+    Column(
+        modifier = Modifier.fillMaxHeight()
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .weight(1f)
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.large)
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
             ) {
-                advancedHintData.let {
-                    BackHandler {
-                        onBackClick()
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(MaterialTheme.shapes.large)
-                            .background(
-                                with(MaterialTheme.colorScheme) {
-                                    primary.blend(secondaryContainer, 0.75f)
-                                }
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    advancedHintData.let {
+                        BackHandler {
+                            onBackClick()
+                        }
                         Row(
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.large)
+                                .background(
+                                    with(MaterialTheme.colorScheme) {
+                                        primary.blend(secondaryContainer, 0.75f)
+                                    }
+                                ),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.AutoAwesome,
-                                contentDescription = null,
-                                modifier = Modifier.padding(horizontal = 12.dp),
-                                tint = with(MaterialTheme.colorScheme) {
-                                    onSecondaryContainer.harmonize(primary)
-                                }
-                            )
-                            Text(
-                                text = stringResource(it.titleRes),
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(vertical = 12.dp),
-                                color = with(MaterialTheme.colorScheme) {
-                                    onSecondaryContainer.harmonize(primary)
-                                }
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.AutoAwesome,
+                                    contentDescription = null,
+                                    modifier = Modifier.padding(horizontal = 12.dp),
+                                    tint = with(MaterialTheme.colorScheme) {
+                                        onSecondaryContainer.harmonize(primary)
+                                    }
+                                )
+                                Text(
+                                    text = stringResource(it.titleRes),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.padding(vertical = 12.dp),
+                                    color = with(MaterialTheme.colorScheme) {
+                                        onSecondaryContainer.harmonize(primary)
+                                    }
+                                )
+                            }
+                            IconButton(
+                                onClick = onSettingsClick,
+                                modifier = Modifier.padding(end = 12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.SettingsSuggest,
+                                    contentDescription = null
+                                )
+                            }
                         }
-                        IconButton(
-                            onClick = onSettingsClick,
-                            modifier = Modifier.padding(end = 12.dp)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState())
+                                .padding(12.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.SettingsSuggest,
-                                contentDescription = null
+                            Text(
+                                text = stringResource(
+                                    it.textResWithArg.first,
+                                    *it.textResWithArg.second.toTypedArray()
+                                ),
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    lineBreak = LineBreak.Paragraph
+                                )
                             )
                         }
                     }
-                    Text(
-                        text = stringResource(
-                            it.textResWithArg.first,
-                            *it.textResWithArg.second.toTypedArray()
-                        ),
-                        modifier = Modifier.padding(12.dp)
-                    )
                 }
             }
         }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             TextButton(

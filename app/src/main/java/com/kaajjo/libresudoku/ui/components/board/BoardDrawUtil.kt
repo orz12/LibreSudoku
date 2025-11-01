@@ -46,8 +46,10 @@ fun DrawScope.drawNotes(
     size: Int,
     paint: Paint,
     highlightPaint: Paint,
+    removeHighlightPaint: Paint,
     notes: List<Note>,
     notesToHighlight: List<Note>,
+    notesToRemoveHightlight: List<Note>,
     cellSize: Float,
     cellSizeDivWidth: Float,
     killerSumBounds: android.graphics.Rect,
@@ -56,6 +58,9 @@ fun DrawScope.drawNotes(
 
     paint.getTextBounds("1", 0, 1, noteBounds)
     val cellDivHeight = (cellSize - killerSumBounds.height() * 1.5f) / floor(sqrt(size.toFloat()))
+    
+    // 使用固定的圆圈半径，基于note格子的尺寸而不是文字宽度
+    val noteCircleRadius = minOf(cellSizeDivWidth, cellDivHeight) * 0.55f
 
     drawIntoCanvas { canvas ->
         notes.forEach { note ->
@@ -75,18 +80,19 @@ fun DrawScope.drawNotes(
 
 
             if (notesToHighlight.contains(note)) {
-//                canvas.nativeCanvas.drawCircle(
-//                    note.col * cellSize + cellSizeDivWidth / 2f + (cellSizeDivWidth * noteRow) + horizontalPadding,
-//                    note.row * cellSize + noteBounds.height() * 1.5f + killerSumBounds.height() + (cellDivHeight * noteCol) - (noteBounds.height() * 0.5f),
-//                    noteTextMeasure * 1.3f,
-//                    highlightPaint
-//                )
-                canvas.nativeCanvas.drawRect(
-                    note.col * cellSize + (cellSizeDivWidth * noteRow),
-                    note.row * cellSize + noteBounds.height() * 1.5f + killerSumBounds.height() + (cellDivHeight * noteCol) - noteBounds.height() * 1.5f,
-                    note.col * cellSize + (cellSizeDivWidth * (noteRow + 1)),
-                    note.row * cellSize + noteBounds.height() * 1.5f + killerSumBounds.height() + (cellDivHeight * noteCol) + noteBounds.height() * 0.5f,
-                    highlightPaint
+               canvas.nativeCanvas.drawCircle(
+                   note.col * cellSize + cellSizeDivWidth / 2f + (cellSizeDivWidth * noteRow) + horizontalPadding,
+                   note.row * cellSize + noteBounds.height() * 1.5f + killerSumBounds.height() + (cellDivHeight * noteCol) - (noteBounds.height() * 0.5f),
+                   noteCircleRadius,
+                   highlightPaint
+               )
+            }
+            if (notesToRemoveHightlight.contains(note)) {
+                canvas.nativeCanvas.drawCircle(
+                    note.col * cellSize + cellSizeDivWidth / 2f + (cellSizeDivWidth * noteRow) + horizontalPadding,
+                    note.row * cellSize + noteBounds.height() * 1.5f + killerSumBounds.height() + (cellDivHeight * noteCol) - (noteBounds.height() * 0.5f),
+                    noteCircleRadius,
+                    removeHighlightPaint
                 )
             }
 

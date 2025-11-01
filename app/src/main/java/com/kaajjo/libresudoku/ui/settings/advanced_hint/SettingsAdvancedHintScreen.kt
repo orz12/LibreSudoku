@@ -227,19 +227,6 @@ fun SettingsAdvancedHintScreen(
             }
             item {
                 TechniqueItem(
-                    title = stringResource(R.string.hint_xy_chain_title),
-                    checked = advancedHintSettings.xyChain,
-                    onClick = {
-                        viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                xyChain = !advancedHintSettings.xyChain
-                            )
-                        )
-                    }
-                )
-            }
-            item {
-                TechniqueItem(
                     title = stringResource(R.string.hint_fish_patterns_title),
                     checked = advancedHintSettings.fishPatterns,
                     onClick = {
@@ -259,6 +246,32 @@ fun SettingsAdvancedHintScreen(
                         viewModel.updateAdvancedHintSettings(
                             advancedHintSettings.copy(
                                 finnedFishVariants = !advancedHintSettings.finnedFishVariants
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_x_chain_title),
+                    checked = advancedHintSettings.xChain,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                xChain = !advancedHintSettings.xChain
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_xy_chain_title),
+                    checked = advancedHintSettings.xyChain,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                xyChain = !advancedHintSettings.xyChain
                             )
                         )
                     }

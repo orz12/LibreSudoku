@@ -70,6 +70,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kaajjo.libresudoku.R
 import com.kaajjo.libresudoku.core.Cell
 import com.kaajjo.libresudoku.core.PreferencesConstants
+import com.kaajjo.libresudoku.core.Note
 import com.kaajjo.libresudoku.core.qqwing.GameType
 import com.kaajjo.libresudoku.core.qqwing.advanced_hint.AdvancedHintData
 import com.kaajjo.libresudoku.core.utils.SudokuParser
@@ -296,64 +297,21 @@ fun GameScreen(
                         .padding(bottom = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center)
-                    ) {
-                        AnimatedVisibility(
-                            visible = !viewModel.gamePlaying && !viewModel.endGame,
-                            enter = expandVertically(clip = false) + fadeIn(),
-                            exit = shrinkVertically(clip = false) + fadeOut()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.PlayCircle,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .shadow(12.dp)
-                            )
-                        }
-                    }
-                    Board(
-                        modifier = Modifier
-                            .blur(boardBlur)
-                            .scale(boardScale, boardScale),
-                        board = if (!viewModel.showSolution) viewModel.gameBoard else viewModel.solvedBoard,
-                        size = viewModel.size,
-                        mainTextSize = fontSizeValue,
-                        autoFontSize = fontSizeFactor == 0,
-                        notes = viewModel.notes,
-                        selectedCell = viewModel.currCell,
-                        onClick = { cell ->
-                            viewModel.processInput(
-                                cell = cell,
-                                remainingUse = remainingUse,
-                            )
-                            if (!viewModel.gamePlaying) {
-                                localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                viewModel.startTimer()
-                            }
-                        },
-                        onLongClick = { cell ->
-                            if (viewModel.processInput(cell, remainingUse, longTap = true)) {
-                                localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                            }
-                        },
-                        identicalNumbersHighlight = highlightIdentical,
-                        errorsHighlight = errorHighlight != 0,
+                    GameBoard(
+                        viewModel = viewModel,
+                        boardBlur = boardBlur,
+                        boardScale = boardScale,
+                        fontSizeValue = fontSizeValue,
+                        fontSizeFactor = fontSizeFactor,
+                        remainingUse = remainingUse,
+                        highlightIdentical = highlightIdentical,
+                        errorHighlight = errorHighlight,
                         positionLines = positionLines,
-                        notesToHighlight = if (viewModel.digitFirstNumber > 0) {
-                            viewModel.notes.filter { it.value == viewModel.digitFirstNumber }
-                        } else {
-                            emptyList()
-                        },
-                        enabled = viewModel.gamePlaying && !viewModel.endGame,
-                        questions = !(viewModel.gamePlaying || viewModel.endGame) && SDK_INT < Build.VERSION_CODES.R,
-                        renderNotes = renderNotes && !viewModel.showSolution,
-                        zoomable = viewModel.gameType == GameType.Default12x12 || viewModel.gameType == GameType.Killer12x12,
+                        advancedHintMode = advancedHintMode,
+                        advancedHintData = advancedHintData,
+                        renderNotes = renderNotes,
                         crossHighlight = crossHighlight,
-                        cages = viewModel.cages,
-                        cellsToHighlight = if (advancedHintMode && advancedHintData != null) advancedHintData!!.helpCells else null,
-                        cellsToHighlightTarget = if (advancedHintMode && advancedHintData != null) advancedHintData!!.targetCells else null
+                        localView = localView
                     )
                 }
 
@@ -610,64 +568,21 @@ fun GameScreen(
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center)
-                    ) {
-                        AnimatedVisibility(
-                            visible = !viewModel.gamePlaying && !viewModel.endGame,
-                            enter = expandVertically(clip = false) + fadeIn(),
-                            exit = shrinkVertically(clip = false) + fadeOut()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.PlayCircle,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .shadow(12.dp)
-                            )
-                        }
-                    }
-                    Board(
-                        modifier = Modifier
-                            .blur(boardBlur)
-                            .scale(boardScale, boardScale),
-                        board = if (!viewModel.showSolution) viewModel.gameBoard else viewModel.solvedBoard,
-                        size = viewModel.size,
-                        mainTextSize = fontSizeValue,
-                        autoFontSize = fontSizeFactor == 0,
-                        notes = viewModel.notes,
-                        selectedCell = viewModel.currCell,
-                        onClick = { cell ->
-                            viewModel.processInput(
-                                cell = cell,
-                                remainingUse = remainingUse,
-                            )
-                            if (!viewModel.gamePlaying) {
-                                localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                viewModel.startTimer()
-                            }
-                        },
-                        onLongClick = { cell ->
-                            if (viewModel.processInput(cell, remainingUse, longTap = true)) {
-                                localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                            }
-                        },
-                        identicalNumbersHighlight = highlightIdentical,
-                        errorsHighlight = errorHighlight != 0,
+                    GameBoard(
+                        viewModel = viewModel,
+                        boardBlur = boardBlur,
+                        boardScale = boardScale,
+                        fontSizeValue = fontSizeValue,
+                        fontSizeFactor = fontSizeFactor,
+                        remainingUse = remainingUse,
+                        highlightIdentical = highlightIdentical,
+                        errorHighlight = errorHighlight,
                         positionLines = positionLines,
-                        notesToHighlight = if (viewModel.digitFirstNumber > 0) {
-                            viewModel.notes.filter { it.value == viewModel.digitFirstNumber }
-                        } else {
-                            emptyList()
-                        },
-                        enabled = viewModel.gamePlaying && !viewModel.endGame,
-                        questions = !(viewModel.gamePlaying || viewModel.endGame) && SDK_INT < Build.VERSION_CODES.R,
-                        renderNotes = renderNotes && !viewModel.showSolution,
-                        zoomable = viewModel.gameType == GameType.Default12x12 || viewModel.gameType == GameType.Killer12x12,
+                        advancedHintMode = advancedHintMode,
+                        advancedHintData = advancedHintData,
+                        renderNotes = renderNotes,
                         crossHighlight = crossHighlight,
-                        cages = viewModel.cages,
-                        cellsToHighlight = if (advancedHintMode && advancedHintData != null) advancedHintData!!.helpCells else null,
-                        cellsToHighlightTarget = if (advancedHintMode && advancedHintData != null) advancedHintData!!.targetCells else null
+                        localView = localView
                     )
                 }
 
@@ -936,6 +851,91 @@ fun GameScreen(
     }
 }
 
+
+@Composable
+fun GameBoard(
+    viewModel: GameViewModel,
+    boardBlur: androidx.compose.ui.unit.Dp,
+    boardScale: Float,
+    fontSizeValue: androidx.compose.ui.unit.TextUnit,
+    fontSizeFactor: Int,
+    remainingUse: Boolean,
+    highlightIdentical: Boolean,
+    errorHighlight: Int,
+    positionLines: Boolean,
+    advancedHintMode: Boolean,
+    advancedHintData: AdvancedHintData?,
+    renderNotes: Boolean,
+    crossHighlight: Boolean,
+    localView: View
+) {
+    Box {
+        Column(
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            AnimatedVisibility(
+                visible = !viewModel.gamePlaying && !viewModel.endGame,
+                enter = expandVertically(clip = false) + fadeIn(),
+                exit = shrinkVertically(clip = false) + fadeOut()
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.PlayCircle,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .shadow(12.dp)
+                )
+            }
+        }
+        Board(
+            modifier = Modifier
+                .blur(boardBlur)
+                .scale(boardScale, boardScale),
+            board = if (!viewModel.showSolution) viewModel.gameBoard else viewModel.solvedBoard,
+            size = viewModel.size,
+            mainTextSize = fontSizeValue,
+            autoFontSize = fontSizeFactor == 0,
+            notes = viewModel.notes,
+            selectedCell = viewModel.currCell,
+            onClick = { cell ->
+                viewModel.processInput(
+                    cell = cell,
+                    remainingUse = remainingUse,
+                )
+                if (!viewModel.gamePlaying) {
+                    localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    viewModel.startTimer()
+                }
+            },
+            onLongClick = { cell ->
+                if (viewModel.processInput(cell, remainingUse, longTap = true)) {
+                    localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                }
+            },
+            identicalNumbersHighlight = highlightIdentical,
+            errorsHighlight = errorHighlight != 0,
+            positionLines = positionLines,
+            notesToRemoveHightlight = if (advancedHintMode) advancedHintData?.notesToRemove ?: emptyList() else emptyList(),
+            notesToHighlight = when {
+                advancedHintMode -> emptyList()
+                viewModel.digitFirstNumber > 0 -> viewModel.notes.filter { it.value == viewModel.digitFirstNumber }
+                else -> emptyList()
+            },
+            enabled = viewModel.gamePlaying && !viewModel.endGame,
+            questions = !(viewModel.gamePlaying || viewModel.endGame) && SDK_INT < Build.VERSION_CODES.R,
+            renderNotes = renderNotes && !viewModel.showSolution,
+            zoomable = viewModel.gameType == GameType.Default12x12 || viewModel.gameType == GameType.Killer12x12,
+            crossHighlight = crossHighlight,
+            cages = viewModel.cages,
+            cellsToHighlight = if (advancedHintMode) advancedHintData?.helpCells else null,
+            cellsToHighlightTarget = if (advancedHintMode)
+                if (advancedHintData?.notesToRemove?.isNotEmpty() == true)
+                    null
+                else advancedHintData?.targetCells
+                else null
+        )
+    }
+}
 
 @Composable
 fun TopBoardSection(

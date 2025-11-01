@@ -6,6 +6,7 @@ import com.kaajjo.libresudoku.core.Cell
 import com.kaajjo.libresudoku.core.Note
 import com.kaajjo.libresudoku.core.qqwing.GameType
 import com.kaajjo.libresudoku.core.utils.SudokuUtils
+import java.util.Collections.min
 
 
 /**
@@ -52,19 +53,29 @@ class AdvancedHint(
         val hint: AdvancedHintData? = null
         if (settings.checkWrongValue) checkForWrongValue()?.let { return it }
         if (settings.fullHouse) checkForFullHouse()?.let { return it }
-        if (settings.nakedSingle) checkForNakedSingle()?.let { return it }
-        if (settings.hiddenSingle) checkForHiddenSingle()?.let { return it }
-        if (settings.checkMissingOrWrongNote) checkForMissingOrWrongNote()?.let { return it }
+        // 为了保证候选数准确，在此强制使用全盘计算候选数
+        val tempNotes = if (checkAllNotes()) notes else SudokuUtils().computeNotes(board, type)
+        if (settings.nakedSingle) checkForNakedSingle(tempNotes)?.let { return it }
+        if (settings.hiddenSingle) checkForHiddenSingle(tempNotes)?.let { return it }
+
+        if (settings.checkMissingOrWrongNote) {
+            checkForMissingOrWrongNote()?.let { return it }
+        } else {
+            // 如果未启用候选数检测且没有全填候选数，则后续检测的正确性无法保证，提前退出
+            if (!checkAllNotes()) return null
+        }
         if (settings.lockedCandidates) checkForLockedCandidates()?.let { return it }
         if (settings.nakedSubsets) checkForNakedSubsets()?.let { return it }
         if (settings.hiddenSubsets) checkForHiddenSubsets()?.let { return it }
+        if (settings.sueDeCoq) checkForSueDeCoq()?.let { return it }
         if (settings.xWings) checkForXWing()?.let { return it }
         if (settings.xyWings) checkForXYWing()?.let { return it }
         if (settings.xyzWings) checkForXYZWing()?.let { return it }
         if (settings.wWings) checkForWWing()?.let { return it }
-        if (settings.xyChain) checkForXYChain()?.let { return it }
         if (settings.fishPatterns) checkForFishPatterns()?.let { return it }
         if (settings.finnedFishVariants) checkForFinnedFishVariants()?.let { return it }
+        if (settings.xChain) checkForXChain()?.let {return it}
+        if (settings.xyChain) checkForXYChain()?.let { return it }
         return hint
     }
 
@@ -88,6 +99,13 @@ class AdvancedHint(
             }
         }
         return null
+    }
+
+    private fun checkAllNotes(): Boolean {
+        if (notes.isEmpty()) return false
+        return board.flatten().all{ cell ->
+            cell.value != 0 || solvedBoard[cell.row][cell.col].value in getCellNotes(cell)
+        }
     }
 
     private fun checkForMissingOrWrongNote(): AdvancedHintData? {
@@ -161,9 +179,9 @@ class AdvancedHint(
         )
     }
 
-    private fun checkForNakedSingle(): AdvancedHintData? {
-        if (notes.isEmpty()) return null
-        val singles = notes.groupBy { Pair(it.row, it.col) }
+    private fun checkForNakedSingle(tempNotes:  List<Note>): AdvancedHintData? {
+        if (tempNotes.isEmpty()) return null
+        val singles = tempNotes.groupBy { Pair(it.row, it.col) }
             .filter { it.value.size == 1 }
             .map { it.value }
             .randomOrNull()
@@ -225,8 +243,7 @@ class AdvancedHint(
         return null
     }
 
-    private fun checkForHiddenSingle(): AdvancedHintData? {
-        val tempNotes = SudokuUtils().computeNotes(board, type)
+    private fun checkForHiddenSingle( tempNotes:List<Note>): AdvancedHintData? {
         var hiddenSingle: Note? = null
         var helpCells: List<Cell>? = null
         val singlesInRow = tempNotes.groupBy { Pair(it.row, it.value) }
@@ -327,7 +344,7 @@ class AdvancedHint(
                         if (cellsToRemoveNote.isNotEmpty()) {
                             return createLockedCandidatesHint(
                                 number = num,
-                                sourceCells = (cellsWithNote + rows[row] + box).filter { !cellsToRemoveNote.contains(it) },
+                                sourceCells = cellsWithNote,
                                 targetCells = cellsToRemoveNote,
                                 isPointing = true,
                                 isRow = true
@@ -351,7 +368,7 @@ class AdvancedHint(
                         if (cellsToRemoveNote.isNotEmpty()) {
                             return createLockedCandidatesHint(
                                 number = num,
-                                sourceCells = (cellsWithNote + columns[col] + box).filter { !cellsToRemoveNote.contains(it) },
+                                sourceCells = cellsWithNote,
                                 targetCells = cellsToRemoveNote,
                                 isPointing = true,
                                 isRow = false
@@ -402,7 +419,7 @@ class AdvancedHint(
                         if (cellsToRemoveNote.isNotEmpty()) {
                             return createLockedCandidatesHint(
                                 number = num,
-                                sourceCells = (cellsWithNote + row + boxes[boxNum]).filter { !cellsToRemoveNote.contains(it) },
+                                sourceCells = cellsWithNote,
                                 targetCells = cellsToRemoveNote,
                                 isPointing = false,
                                 isRow = true
@@ -443,7 +460,7 @@ class AdvancedHint(
                         if (cellsToRemoveNote.isNotEmpty()) {
                             return createLockedCandidatesHint(
                                 number = num,
-                                sourceCells = (cellsWithNote + col + boxes[boxNum]).filter { !cellsToRemoveNote.contains(it) },
+                                sourceCells = cellsWithNote,
                                 targetCells = cellsToRemoveNote,
                                 isPointing = false,
                                 isRow = false
@@ -513,21 +530,21 @@ class AdvancedHint(
 
         for ((entity, entityType) in entities) {
             // 检查显性数对 (2个数字)
-            val nakedPair = checkNakedsubsets(entity, 2)
+            val nakedPair = checkNakedSubsets(entity, 2)
             if (nakedPair != null) {
-                return createsubsetsHint(nakedPair, entityType, isNaked = true)
+                return createSubsetsHint(nakedPair, entityType, isNaked = true)
             }
 
             // 检查显性三数组 (3个数字)
-            val nakedTriple = checkNakedsubsets(entity, 3)
+            val nakedTriple = checkNakedSubsets(entity, 3)
             if (nakedTriple != null) {
-                return createsubsetsHint(nakedTriple, entityType, isNaked = true)
+                return createSubsetsHint(nakedTriple, entityType, isNaked = true)
             }
 
             // 检查显性四数组 (4个数字)
-            val nakedQuadruple = checkNakedsubsets(entity, 4)
+            val nakedQuadruple = checkNakedSubsets(entity, 4)
             if (nakedQuadruple != null) {
-                return createsubsetsHint(nakedQuadruple, entityType, isNaked = true)
+                return createSubsetsHint(nakedQuadruple, entityType, isNaked = true)
             }
         }
 
@@ -539,52 +556,41 @@ class AdvancedHint(
      * @param entity 要检查的单元（行、列或宫）
      * @param size 数组大小（2-4）
      */
-    private fun checkNakedsubsets(entity: List<Cell>, size: Int): SubsetData? {
+    private fun checkNakedSubsets(entity: List<Cell>, size: Int): SubsetData? {
         // 获取单元中所有有候选数的单元格及其候选数
-        val cellsWithNotes = entity
+        val entityCellsWithNotes = entity
             .filter { cell -> cell.value == 0 }
-            .map { cell ->
-                val cellNotes = notes.filter { note ->
-                    note.row == cell.row && note.col == cell.col
-                }.map { it.value }.toSet()
-                cell to cellNotes
-            }
+            .map { cell -> cell to getCellNotes(cell) }
             .filter { (_, notes) -> notes.isNotEmpty() }
+
 
         // 尝试找到size个单元格，它们的候选数集合的并集大小等于size
         // 且这些候选数只出现在这size个单元格中
-        for (combination in cellsWithNotes.combinations(size)) {
+        for (combination in entityCellsWithNotes.filter { (_, notes) -> notes.size <= size }.combinations(size)) {
             // cells为这size个单元格，allNotes为它们的候选数集合的并集
             val cells = combination.map { it.first }
             val allNotes = combination.flatMap { it.second }.toSet()
 
-            if (allNotes.size == size) {
-                // 检查这些候选数是否只出现在这size个单元格中
-                val otherCells = cellsWithNotes.filterNot { combination.contains(it) }
-                val otherCellsHaveNotes = otherCells.any { (_, cellNotes) ->
-                    cellNotes.intersect(allNotes).isNotEmpty()
-                }
+            if (allNotes.size != size) continue
+            // 检查这些候选数是否只出现在这size个单元格中
+            val otherCells = entityCellsWithNotes.filterNot { combination.contains(it) }
+            val otherCellsWithThoseNotes = otherCells
+                .map { (cell, notes) -> cell to notes.intersect(allNotes) }
+                .filterNot { (_ , notes) -> notes.isEmpty()}
 
-                if (!otherCellsHaveNotes) {
-                    // 找到显性数组，确定可以移除的候选数
-                    val notesToRemove = combination.flatMap { (cell, cellNotes) ->
-                        notes.filter { note ->
-                            note.row == cell.row &&
-                                    note.col == cell.col &&
-                                    !allNotes.contains(note.value)
-                        }
-                    }
-
-                    if (notesToRemove.isNotEmpty()) {
-                        return SubsetData(
-                            numbers = allNotes.toList().sorted(),
-                            cells = cells,
-                            notesToRemove = notesToRemove,
-                            helperCells = entity,
-                        )
-                    }
+            if (otherCellsWithThoseNotes.isEmpty()) continue
+            val notesToRemove = otherCellsWithThoseNotes.fold(emptyList<Note>()) { acc, (cell, notes) ->
+                acc + notes.map { note ->
+                    Note(cell.row, cell.col, note)
                 }
             }
+
+            return SubsetData(
+                numbers = allNotes.toList().sorted(),
+                cells = cells,
+                notesToRemove = notesToRemove,
+                helperCells = entity,
+            )
         }
 
         return null
@@ -616,7 +622,7 @@ class AdvancedHint(
             if (allNotesInEntity.size >= 2) {
                 val hiddenPair = checkHiddensubsets(entity, allNotesInEntity, 2)
                 if (hiddenPair != null) {
-                    return createsubsetsHint(hiddenPair, entityType, isNaked = false)
+                    return createSubsetsHint(hiddenPair, entityType, isNaked = false)
                 }
             }
 
@@ -624,7 +630,7 @@ class AdvancedHint(
             if (allNotesInEntity.size >= 3) {
                 val hiddenTriple = checkHiddensubsets(entity, allNotesInEntity, 3)
                 if (hiddenTriple != null) {
-                    return createsubsetsHint(hiddenTriple, entityType, isNaked = false)
+                    return createSubsetsHint(hiddenTriple, entityType, isNaked = false)
                 }
             }
 
@@ -632,7 +638,7 @@ class AdvancedHint(
             if (allNotesInEntity.size >= 4) {
                 val hiddenQuadruple = checkHiddensubsets(entity, allNotesInEntity, 4)
                 if (hiddenQuadruple != null) {
-                    return createsubsetsHint(hiddenQuadruple, entityType, isNaked = false)
+                    return createSubsetsHint(hiddenQuadruple, entityType, isNaked = false)
                 }
             }
         }
@@ -695,7 +701,7 @@ class AdvancedHint(
     /**
      * 创建数组提示数据对象
      */
-    private fun createsubsetsHint(
+    private fun createSubsetsHint(
         subsetData: SubsetData,
         entityType: String,
         isNaked: Boolean
@@ -733,7 +739,7 @@ class AdvancedHint(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
             targetCells = targetCells,
-            helpCells = (subsetData.helperCells + subsetData.cells).filter { it !in targetCells },
+            helpCells = subsetData.cells.filter { it !in targetCells },
             notesToRemove = subsetData.notesToRemove
         )
     }
@@ -747,6 +753,335 @@ class AdvancedHint(
         val notesToRemove: List<Note>,
         val helperCells: List<Cell> = emptyList()
     )
+
+    /**
+     * 检查 Sue de Coq（融合待定数组/SDC）
+     * 
+     * 正确定义（基于标准描述）：
+     * 
+     * 设 C 为宫 B 与行/列 R 交集处的空单元格集合，|C| >= 2
+     * 设 V 为 C 中出现的候选数集合，|V| >= |C| + 2
+     * 
+     * 需要在 B 和 R 中找到 |V| - |C| + n 个单元格（CB 在宫内，CR 在行/列内）：
+     * - 每个区域至少有一个单元格
+     * - 这些单元格包含至少 |V| - |C| 个来自 V 的候选数
+     * - n 为不来自 V 的候选数数量
+     * 
+     * 设 VB 为 CB 的候选数集合，VR 为 CR 的候选数集合
+     * 
+     * **关键约束**：V 中的候选数不能同时出现在 VB 和 VR 中
+     * 即：对于任意 x ∈ V，不能同时有 x ∈ VB 且 x ∈ VR
+     * 
+     * C 必须包含：
+     * - V \ (VB ∪ VR)：不在 VB 或 VR 中的 V 的候选数
+     * - |VB| - |CB| 个 VB 的元素
+     * - |VR| - |CR| 个 VR 的元素
+     * 
+     * 排除规则：
+     * - 从 B \ (C ∪ CB) 排除 VB ∪ (V \ VR)
+     * - 从 R \ (C ∪ CR) 排除 VR ∪ (V \ VB)
+     */
+    private fun checkForSueDeCoq(): AdvancedHintData? {
+        if (notes.isEmpty()) return null
+
+        // 检查列与宫的交集
+        for (colNum in columns.indices) {
+            for (boxNum in boxes.indices) {
+                val hint = checkSueDeCoqForLineAndBox(
+                    lineNum = colNum,
+                    boxNum = boxNum,
+                    isRow = false
+                )
+                if (hint != null) return hint
+            }
+        }
+        // 检查行与宫的交集
+        for (rowNum in rows.indices) {
+            for (boxNum in boxes.indices) {
+                val hint = checkSueDeCoqForLineAndBox(
+                    lineNum = rowNum,
+                    boxNum = boxNum,
+                    isRow = true
+                )
+                if (hint != null) return hint
+            }
+        }
+
+
+        return null
+    }
+
+    /**
+     * 统一检查行/列与宫的 Sue de Coq
+     * @param lineNum 行号或列号
+     * @param boxNum 宫号
+     * @param isRow true 表示检查行，false 表示检查列
+     */
+    private fun checkSueDeCoqForLineAndBox(
+        lineNum: Int,
+        boxNum: Int,
+        isRow: Boolean
+    ): AdvancedHintData? {
+        val line = if (isRow) rows[lineNum] else columns[lineNum]
+        val box = boxes[boxNum]
+
+        // 获取宫与行/列交集处的所有空单元格（候选C的池子）
+        val allIntersectionCells = line.intersect(box.toSet()).filter { it.value == 0 }.toList()
+        if (allIntersectionCells.size < 2) return null
+
+        // 枚举交集的子集作为C，优先选择较小的集合（|C| >= 2）
+        for (cSize in 2..allIntersectionCells.size) {
+            for (cCombination in allIntersectionCells.combinations(cSize)) {
+                // V: 交集单元格C中的所有候选数，|V| >= |C| + 2
+                val vSet = cCombination.flatMap { getCellNotes(it) }.toSet()
+                if (vSet.size < cSize + 2) continue
+
+                // 宫内其他空单元格（不在整个交集中）
+                val boxOtherCells = box.filter { cell ->
+                    val isInIntersection = if (isRow) {
+                        cell.row == lineNum
+                    } else {
+                        cell.col == lineNum
+                    }
+                    !isInIntersection && cell.value == 0
+                }
+                
+                // 行/列内其他空单元格（不在宫中）
+                val lineOtherCells = line.filter { 
+                    getBoxNumber(it.row, it.col) != boxNum && it.value == 0 
+                }
+
+                if (boxOtherCells.isEmpty() || lineOtherCells.isEmpty()) continue
+
+                // 需要找到 |V| - |C| + n 个单元格（CB 和 CR）
+                val requiredCellsFromV = vSet.size - cSize
+                
+                // 枚举 CB 的所有可能组合（至少1个）
+                for (cbSize in 1..minOf(boxOtherCells.size, requiredCellsFromV + 3)) {
+                    for (cbCombination in boxOtherCells.combinations(cbSize)) {
+                        val vb = cbCombination.flatMap { getCellNotes(it) }.toSet()
+                        if (vb.isEmpty()) continue
+                        
+                        // VB 中来自 V 的候选数
+                        val vbFromV = vb.intersect(vSet)
+                        // VB 中不来自 V 的候选数（外部候选数）
+                        val vbNotFromV = vb - vSet
+                        
+                        // 枚举 CR 的所有可能组合（至少1个）
+                        for (crSize in 1..minOf(lineOtherCells.size, requiredCellsFromV + 3)) {
+                            for (crCombination in lineOtherCells.combinations(crSize)) {
+                                val vr = crCombination.flatMap { getCellNotes(it) }.toSet()
+                                if (vr.isEmpty()) continue
+                                
+                                // VR 中来自 V 的候选数
+                                val vrFromV = vr.intersect(vSet)
+                                // VR 中不来自 V 的候选数（外部候选数）
+                                val vrNotFromV = vr - vSet
+                                
+                                // **关键约束**：V 中的候选数不能同时出现在 VB 和 VR 中
+                                val vInBoth = vbFromV.intersect(vrFromV)
+                                if (vInBoth.isNotEmpty()) continue
+                                
+                                // 来自 V 的候选数总数
+                                val totalFromV = vbFromV.size + vrFromV.size
+                                // 不来自 V 的候选数总数 n
+                                val n = vbNotFromV.size + vrNotFromV.size
+                                
+                                // 验证：|CB| + |CR| = |V| - |C| + n
+                                if (cbSize + crSize != requiredCellsFromV + n) continue
+                                
+                                // 验证：至少 |V| - |C| 个候选数来自 V
+                                if (totalFromV < requiredCellsFromV) continue
+                                
+                                // 验证 C 的结构（简化验证：确保 C 的候选数能容纳所需的分配）
+                                // V \ (VB ∪ VR) 必须能装入 C
+                                val vNotInVbVr = vSet - vbFromV - vrFromV
+                                // |VB| - |CB| 和 |VR| - |CR| 的元素也需要装入 C
+                                val neededInC = vNotInVbVr.size + (vb.size - cbSize) + (vr.size - crSize)
+                                if (neededInC > cSize * type.size) continue // 粗略验证
+                                
+                                // 计算排除的候选数
+                                val notesToRemove = mutableListOf<Note>()
+                                val affectedCells = mutableListOf<Cell>()
+
+                                // 从 B \ (C ∪ CB) 排除 VB ∪ (V \ VR)
+                                val toRemoveFromBox = vb.union(vSet - vrFromV)
+                                val boxCellsToCheck = box.filter { 
+                                    it.value == 0 && 
+                                    it !in cCombination && 
+                                    it !in cbCombination 
+                                }
+                                for (cell in boxCellsToCheck) {
+                                    val cellNotes = getCellNotes(cell)
+                                    val toRemove = cellNotes.intersect(toRemoveFromBox)
+                                    for (num in toRemove) {
+                                        notesToRemove.add(Note(cell.row, cell.col, num))
+                                        if (!affectedCells.contains(cell)) {
+                                            affectedCells.add(cell)
+                                        }
+                                    }
+                                }
+
+                                // 从 R \ (C ∪ CR) 排除 VR ∪ (V \ VB)
+                                val toRemoveFromLine = vr.union(vSet - vbFromV)
+                                val lineCellsToCheck = line.filter { 
+                                    it.value == 0 && 
+                                    it !in cCombination && 
+                                    it !in crCombination 
+                                }
+                                for (cell in lineCellsToCheck) {
+                                    val cellNotes = getCellNotes(cell)
+                                    val toRemove = cellNotes.intersect(toRemoveFromLine)
+                                    for (num in toRemove) {
+                                        notesToRemove.add(Note(cell.row, cell.col, num))
+                                        if (!affectedCells.contains(cell)) {
+                                            affectedCells.add(cell)
+                                        }
+                                    }
+                                }
+
+                                if (notesToRemove.isNotEmpty()) {
+                                    return createSueDeCoqHint(
+                                        boxNum = boxNum,
+                                        lineNum = lineNum,
+                                        isRowBased = isRow,
+                                        intersectionCells = cCombination,
+                                        cbCells = cbCombination,
+                                        crCells = crCombination,
+                                        intersectionNotes = vSet,
+                                        vb = vb,
+                                        vr = vr,
+                                        notesToRemove = notesToRemove,
+                                        affectedCells = affectedCells
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * 创建 Sue de Coq 提示数据对象
+     * 
+     * Sue de Coq 提示说明：
+     * - 从宫与行/列交集中选取子集 C (|C| >= 2)，包含候选数集合 V (|V| >= |C| + 2)
+     * - CB 和 CR 共 |V| - |C| + n 个单元格，包含候选数 VB 和 VR
+     * - 关键：V 中的候选数不能同时出现在 VB 和 VR 中
+     * - 从宫的其他单元格排除 VB 及 (V 中不在 VR 的部分)
+     * - 从行/列的其他单元格排除 VR 及 (V 中不在 VB 的部分)
+     * 
+     * @param boxNum 宫的编号
+     * @param lineNum 行或列的编号
+     * @param isRowBased 是否为行基模式（true=行与宫，false=列与宫）
+     * @param intersectionCells 从交集中选取的单元格子集 C
+     * @param cbCells 宫内的单元格 CB
+     * @param crCells 行/列内的单元格 CR
+     * @param intersectionNotes 选取子集 C 的候选数集合 V
+     * @param vb 宫内单元格的候选数集合 VB（可能包含 V 外的候选数）
+     * @param vr 行/列内单元格的候选数集合 VR（可能包含 V 外的候选数）
+     * @param notesToRemove 要移除的候选数
+     * @param affectedCells 受影响的单元格
+     */
+    private fun createSueDeCoqHint(
+        boxNum: Int,
+        lineNum: Int,
+        isRowBased: Boolean,
+        intersectionCells: List<Cell>,
+        cbCells: List<Cell>,
+        crCells: List<Cell>,
+        intersectionNotes: Set<Int>,
+        vb: Set<Int>,
+        vr: Set<Int>,
+        notesToRemove: List<Note>,
+        affectedCells: List<Cell>
+    ): AdvancedHintData {
+        val titleRes = R.string.hint_sue_de_coq_title
+
+        // 格式化单元格信息
+        val intersectionStr = intersectionCells.joinToString(", ") { cellStringFormat(it) }
+        val cbStr = cbCells.joinToString(", ") { cellStringFormat(it) }
+        val crStr = crCells.joinToString(", ") { cellStringFormat(it) }
+        
+        // 格式化候选数信息
+        val vStr = intersectionNotes.sorted().joinToString(",")
+        val vbStr = vb.sorted().joinToString(",")
+        val vrStr = vr.sorted().joinToString(",")
+        
+        // 计算 VB ∩ V 和 VR ∩ V（来自 V 的部分）
+        val vbFromV = vb.intersect(intersectionNotes)
+        val vrFromV = vr.intersect(intersectionNotes)
+        
+        // 格式化删除信息：每个单元格显示要删除的候选数
+        val cellNotesMap = notesToRemove.groupBy { Pair(it.row, it.col) }
+        val removalsStr = cellNotesMap.entries
+            .sortedBy { (key, _) -> key.first * 100 + key.second }
+            .joinToString(",") { (key, notes) ->
+                val cell = board[key.first][key.second]
+                val notesStr = notes.map { it.value }.sorted().joinToString(",")
+                "${cellStringFormat(cell)}($notesStr)"
+            }
+        
+        // 解释为什么删除
+        //val vNotInVr = (intersectionNotes - vrFromV).sorted().joinToString(",")
+        //val vNotInVb = (intersectionNotes - vbFromV).sorted().joinToString(",")
+        val deleteInBox = vb.union(intersectionNotes - vrFromV)
+        val deleteInLine = vr.union(intersectionNotes - vbFromV)
+
+        val (detailRes, detailArgs) = if (isRowBased) {
+            Pair(
+                R.string.hint_sue_de_coq_box_row_detail,
+                listOf(
+                    (boxNum + 1).toString(),           // %1 宫号
+                    (lineNum + 1).toString(),          // %2 行号
+                    intersectionStr,                    // %3 交集单元格
+                    vStr,                              // %4 V 集合
+                    cbStr,                             // %5 CB 单元格
+                    vbStr,                             // %6 VB 集合
+                    crStr,                             // %7 CR 单元格
+                    vrStr,                             // %8 VR 集合
+                    vbFromV.sorted().joinToString(","),// %9 VB 中来自 V 的部分
+                    vrFromV.sorted().joinToString(","),// %10 VR 中来自 V 的部分
+                    deleteInBox.sorted().joinToString(","), // %11 宫中删除的部分
+                    deleteInLine.sorted().joinToString(","), // %12 行/列中删除的部分
+                    removalsStr                        // %13 删除信息（带括号格式）
+                )
+            )
+        } else {
+            Pair(
+                R.string.hint_sue_de_coq_box_col_detail,
+                listOf(
+                    (boxNum + 1).toString(),           // %1 宫号
+                    (lineNum + 1).toString(),          // %2 列号
+                    intersectionStr,                    // %3 交集单元格
+                    vStr,                              // %4 V 集合
+                    cbStr,                             // %5 CB 单元格
+                    vbStr,                             // %6 VB 集合
+                    crStr,                             // %7 CR 单元格
+                    vrStr,                             // %8 VR 集合
+                    vbFromV.sorted().joinToString(","),// %9 VB 中来自 V 的部分
+                    vrFromV.sorted().joinToString(","),// %10 VR 中来自 V 的部分
+                    deleteInBox.sorted().joinToString(","), // %11 宫中删除的部分
+                    deleteInLine.sorted().joinToString(","), // %12 行/列中删除的部分
+                    removalsStr                        // %13 删除信息（带括号格式）
+                )
+            )
+        }
+
+        val helpCells = (intersectionCells + cbCells + crCells).distinct()
+
+        return AdvancedHintData(
+            titleRes = titleRes,
+            textResWithArg = Pair(detailRes, detailArgs),
+            targetCells = affectedCells,
+            helpCells = helpCells.filter { !affectedCells.contains(it) } + intersectionCells,
+            notesToRemove = notesToRemove
+        )
+    }
 
     /**
      * 检查X-Wing模式
@@ -1091,6 +1426,211 @@ class AdvancedHint(
         return null
     }
 
+    /**
+    X-Chain 的链类型枚举*/
+    private enum class ChainType {
+        STRONG, // 仅强链（至少一真）
+        WEAK, // 仅弱链（至少一假）
+        STRONG_AND_WEAK, // 既是强链也是弱链（严格一真一假）
+        NONE; // 无链
+
+        fun isStrong(): Boolean = this == STRONG || this == STRONG_AND_WEAK
+        fun isWeak(): Boolean = this == WEAK || this == STRONG_AND_WEAK
+    }
+    /**
+    BFS 节点数据类
+     */
+    private data class XChainBfsNode (
+        val currentCell: Cell,
+        val path: List<Cell>,
+        val lastChainType: ChainType?,
+        val visited: Set<Cell>
+    )
+    /*
+        检查X-Chain
+        * X-Chain是单个数字构成的强弱交替链，由强链开头和结尾，中间必须强弱交替。
+        * 最终链两端共同可见的该数字可以删除。
+     */
+
+    private fun checkForXChain(): AdvancedHintData? {
+        if (notes.isEmpty ()) return null
+        val size = type.size
+        // 遍历每个可能的数字构建 X-Chain
+        for (num in 1..size) {// 收集所有包含该数字候选的单元格（X-cells）
+            val xCells = notes.filter { it.value == num }.map { note -> board[note.row][note.col] }.distinct().filter { cell -> cell.value == 0 }
+            if (xCells.size < 5) continue // 至少需要 5 个单元格才能形成链和排除格
+            // 构建链的邻接表：记录每个单元格的强链和弱链连接
+            val adjacency = buildXChainAdjacency (xCells, num)
+            if (adjacency.isEmpty()) continue
+            // BFS 寻找最短有效 X-Chain
+            val chainResult = findShortestValidXChain(xCells, adjacency, num)
+            if (chainResult != null) return chainResult
+        }
+        return null
+    }
+    /**
+    为 X-Chain 构建邻接表，区分强链和弱链*/
+    private fun buildXChainAdjacency (xCells: List<Cell>, num: Int): Map<Cell, List<Pair<Cell, ChainType>>> {
+        val adjacency = mutableMapOf<Cell, MutableList<Pair<Cell, ChainType>>>()
+        // 为每个单元格找到所有同单元的其他 X-cell，判断链类型
+        for (i in xCells.indices) {
+            val cellA = xCells[i]
+            for (j in i + 1 until xCells.size) {
+                val cellB = xCells[j]
+                if (!areInSameGroup(cellA, cellB)) continue // 仅考虑同单元（行 / 列 / 宫）的单元格
+                // 判断链类型
+                val chainType = determineChainType(cellA, cellB, num)
+                if (chainType == ChainType.NONE) continue
+                // 双向添加到邻接表
+                adjacency.getOrPut (cellA) { mutableListOf () }.add (cellB to chainType)
+                adjacency.getOrPut (cellB) { mutableListOf () }.add (cellA to chainType)
+            }
+        }
+        return adjacency
+    }
+    /**
+    判断两个同单元单元格之间的链类型
+    强链：同一单元中该数字仅出现在这两个单元格（至少一个为真）
+    弱链：同一单元中该数字出现在两个以上单元格（至少一个为假）
+    互斥链：既是强链也是弱链（严格一真一假）*/
+    private fun determineChainType (cellA: Cell, cellB: Cell, num: Int): ChainType {
+    // 确定两个单元格所在的共同单元（行 / 列 / 宫）
+//        val commonUnit = when {
+//            cellA.row == cellB.row -> rows[cellA.row] // 同一行
+//            cellA.col == cellB.col -> columns[cellA.col] // 同一列
+//            else -> boxes[getBoxNumber(cellA.row, cellA.col)] // 同一宫
+//        }
+
+        val xCountInCommonRow = if (cellA.row != cellB.row) 999 else rows[cellA.row].count{cell ->
+            cell.value == 0 && notes.any{note ->
+                note.row == cell.row && note.col == cell.col && note.value == num
+            }
+        }
+        val xCountInCommonCol = if (cellA.col != cellB.col) 999 else columns[cellA.col].count{cell ->
+            cell.value == 0 && notes.any{note ->
+                note.row == cell.row && note.col == cell.col && note.value == num
+            }
+        }
+        val xCountInCommonBox = if (
+                getBoxNumber(cellA.row, cellA.col) != getBoxNumber(cellB.row, cellB.col)
+            ) 999 else boxes[getBoxNumber(cellA.row, cellA.col)].count{cell ->
+            cell.value == 0 && notes.any{note ->
+                note.row == cell.row && note.col == cell.col && note.value == num
+            }
+        }
+        val xCountInGroup = intArrayOf(xCountInCommonRow, xCountInCommonCol, xCountInCommonBox).min()
+        if (xCountInGroup == 999) throw IllegalStateException("not in group")
+        return when (xCountInGroup) {
+            2 -> ChainType.STRONG_AND_WEAK // 仅两个单元格，既是强链也是弱链（互斥）
+            in 3..type.size -> ChainType.WEAK // 三个及以上，弱链
+            else -> ChainType.NONE // 无效情况（少于 2 个）
+        }
+    }
+    /**
+    BFS 寻找最短有效 X-Chain
+    有效链需满足：强弱交替，以强链结尾，两端有共同可见单元格且含该数字候选*/
+    private fun findShortestValidXChain (xCells: List<Cell>,adjacency: Map<Cell, List<Pair<Cell, ChainType>>>,num: Int): AdvancedHintData? {
+    // BFS 队列元素：(当前单元格，路径，最后一条链的类型，已访问单元格)
+        val queue = ArrayDeque<XChainBfsNode>()
+        // 初始化队列：从每个单元格开始，以强链为起点
+        xCells.forEach {startCell ->
+            queue.add(
+                XChainBfsNode(
+                    currentCell = startCell,
+                    path = listOf (startCell),
+                    lastChainType = null,
+                    visited = setOf(startCell)
+                )
+            )
+        }
+        while (queue.isNotEmpty()) {
+            val node = queue.removeFirst()
+            val currentCell = node.currentCell
+            val currentPath = node.path
+            val lastType = node.lastChainType
+            val visited = node.visited
+            // 遍历当前单元格的所有连接
+            for ((neighbor, chainType) in adjacency [currentCell] ?: emptyList ()) {
+                if (neighbor in visited) continue // 避免循环
+                // 检查链类型是否符合交替规则
+                val isValidTransition = when (lastType) {
+                    null -> chainType.isStrong() // 第一条链必须是强链
+                    ChainType.STRONG -> chainType.isWeak() // 强链后必须跟弱链
+                    ChainType.STRONG_AND_WEAK -> {
+                        if (currentPath.size % 2 == 0) chainType.isWeak() else chainType.isStrong()
+                    }
+                    ChainType.WEAK -> chainType.isStrong() // 弱链后必须跟强链
+                    ChainType.NONE -> false
+                }
+                if (!isValidTransition) continue
+                // 构建新路径
+                val newPath = currentPath + neighbor
+                val newVisited = visited + neighbor
+                // 链长度至少为 4 且为偶数（包含起点和终点），且最后一条链必须是强链
+                if (newPath.size >= 4 && newPath.size % 2 == 0 && chainType.isStrong()) {
+                    // 检查路径两端是否有共同可见单元格
+                    val start = newPath.first()
+                    val end = newPath.last()
+                    val commonVisible = getCommonVisibleCells(start, end)
+                        .filter { it.value == 0 } // 仅考虑空单元格
+                        .filter { it !in newPath }
+                        .filter { cell -> notes.any { note -> note.row == cell.row && note.col == cell.col && note.value == num }}
+
+                    if (commonVisible.isNotEmpty()) {
+                        // 收集可移除的候选数
+                        val notesToRemove =
+                            commonVisible.flatMap { cell -> notes.filter { note -> note.row == cell.row && note.col == cell.col && note.value == num } }
+                        if (notesToRemove.isNotEmpty()) {
+                            return createXChainHint(
+                                number = num,
+                                chainPath = newPath,
+                                affectedCells = commonVisible,
+                                notesToRemove = notesToRemove
+                            )
+                        }
+                    }
+                }
+
+                // 继续扩展路径（只保留较短路径，避免过长链）
+                queue.add(
+                    XChainBfsNode(
+                        currentCell = neighbor,
+                        path = newPath,
+                        lastChainType = chainType,
+                        visited = newVisited
+                    )
+                )
+            }
+        }
+        return null
+    }
+    /**
+        创建 X-Chain 提示数据对象
+    **/
+    private fun createXChainHint (number: Int,chainPath: List<Cell>,affectedCells: List<Cell>,notesToRemove: List<Note>): AdvancedHintData {
+        val titleRes = R.string.hint_x_chain_title
+        val detailRes = R.string.hint_x_chain_detail
+        // 格式化链路径和受影响单元格
+        // val chainPathStr = chainPath.joinToString ("-") { cellStringFormat (it) }
+        val chainPathStr = chainPath.withIndex().fold("") { acc, (index, element) ->
+            val cellStr = cellStringFormat(element)
+            when {
+                index == 0 -> cellStr
+                index % 2 == 1 -> "$acc=$cellStr"
+                else -> "$acc-$cellStr"
+            }
+        }
+        val affectedCellsStr = affectedCells.joinToString (",") { cellStringFormat (it) }
+        val detailArgs = listOf(number.toString(),chainPathStr,affectedCellsStr)
+        return AdvancedHintData(
+            titleRes = titleRes,
+            textResWithArg = Pair(detailRes, detailArgs),
+            targetCells = affectedCells,
+            helpCells = chainPath,
+            notesToRemove = notesToRemove
+        )
+    }
+
     /*
         检查XY-Chain
         * XY-Chain是XY-Wings的推广，由一系列双值单元格组成，这些单元格通过共享候选数连接在一起。
@@ -1107,15 +1647,8 @@ class AdvancedHint(
         // 3. 构建邻接表：仅保留同区且恰好共享1个候选数的相邻节点
         val adjacency = buildAdjacencyList(biValueCells, cellNotes)
 
-        // 4. 对每个起点执行BFS（保证最短链优先）
-//        val visitedStarts = mutableSetOf<Cell>()
-        //for (start in adjacency.keys) {
-//            if (start in visitedStarts) continue
-//            visitedStarts.add(start)
-
-            val result = bfsForShortestXYChain(adjacency, cellNotes)
-            if (result != null) return result
-        //}
+        val result = bfsForShortestXYChain(adjacency, cellNotes)
+        if (result != null) return result
 
         return null
     }

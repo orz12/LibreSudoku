@@ -112,9 +112,10 @@ class AppSettingsManager(context: Context) {
     private val ahXYWings = booleanPreferencesKey("ah_xy_wings")
     private val ahXYZWings = booleanPreferencesKey("ah_xyz_wings")
     private val ahWWings = booleanPreferencesKey("ah_w_wings")
-    private val ahXYChain = booleanPreferencesKey("ah_xy_chain")
     private val ahFishPatterns = booleanPreferencesKey("ah_fish_patterns")
     private val ahFinnedFishVariants = booleanPreferencesKey("ah_finned_fish_variants")
+    private val ahXChain = booleanPreferencesKey("ah_x_chain")
+    private val ahXYChain = booleanPreferencesKey("ah_xy_chain")
 
     private val autoUpdateChannelKey = intPreferencesKey("auto_update")
     private val updateDismissedNameKey = stringPreferencesKey("update_dismissed_name") // name of the update that was dismissed
@@ -426,9 +427,10 @@ class AppSettingsManager(context: Context) {
         val xyWings = settings[ahXYWings] ?: true
         val xyzWings = settings[ahXYZWings] ?: true
         val wWings = settings[ahWWings] ?: true
-        val xyChain = settings[ahXYChain] ?: true
         val fishPatterns = settings[ahFishPatterns] ?: true
         val finnedFishVariants = settings[ahFinnedFishVariants] ?: true
+        val xChain = settings[ahXChain] ?: true
+        val xyChain = settings[ahXYChain] ?: true
 
         AdvancedHintSettings(
             fullHouse = fullHouse,
@@ -443,9 +445,10 @@ class AppSettingsManager(context: Context) {
             xyWings = xyWings,
             xyzWings = xyzWings,
             wWings = wWings,
-            xyChain = xyChain,
             fishPatterns = fishPatterns,
-            finnedFishVariants = finnedFishVariants
+            finnedFishVariants = finnedFishVariants,
+            xChain = xChain,
+            xyChain = xyChain,
         )
     }
 
@@ -463,9 +466,10 @@ class AppSettingsManager(context: Context) {
             settings[ahXYWings] = ahSettings.xyWings
             settings[ahXYZWings] = ahSettings.xyzWings
             settings[ahWWings] = ahSettings.wWings
-            settings[ahXYChain] = ahSettings.xyChain
             settings[ahFishPatterns] = ahSettings.fishPatterns
             settings[ahFinnedFishVariants] = ahSettings.finnedFishVariants
+            settings[ahXChain] = ahSettings.xChain
+            settings[ahXYChain] = ahSettings.xyChain
         }
     }
 

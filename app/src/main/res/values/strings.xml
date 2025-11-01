@@ -393,9 +393,14 @@
     <string name="hint_naked_subsets_detail">Cells %1$s form a naked subset for numbers %2$s, so these numbers can be removed from cells %3$s in this group</string>
     <string name="hint_hidden_subsets_title">Hidden subsets</string>
     <string name="hint_hidden_subsets_detail">Cells %1$s form a hidden subset for numbers %2$s, so other numbers can be removed from cells %3$s in this group</string>
+    <string name="hint_sue_de_coq_title">Sue de Coq</string>
+    <string name="hint_sue_de_coq_box_row_detail">Sue de Coq: box %1$s and row %2$s. Selected cells C=%3$s (subset from intersection) with candidates V={%4$s}. Box cells %5$s contain VB={%6$s} (from V: {%9$s}), row cells %7$s contain VR={%8$s} (from V: {%10$s}). Since {%9$s} and {%10$s} don\'t overlap, eliminate from box: {%11$s} (VB plus V-excluding-VR); from row: {%12$s} (VR plus V-excluding-VB). Removals: %13$s.</string>
+    <string name="hint_sue_de_coq_box_col_detail">Sue de Coq: box %1$s and col %2$s. Selected cells C=%3$s (subset from intersection) with candidates V={%4$s}. Box cells %5$s contain VB={%6$s} (from V: {%9$s}), col cells %7$s contain VR={%8$s} (from V: {%10$s}). Since {%9$s} and {%10$s} don\'t overlap, eliminate from box: {%11$s} (VB plus V-excluding-VR); from col: {%12$s} (VR plus V-excluding-VB). Removals: %13$s.</string>
     <string name="hint_x_wing_title">X-Wing</string>
     <string name="hint_x_wing_row_detail">Number %1$s forms an X-Wing in rows %2$s, appearing only in columns %3$s, so %1$s can be removed from cells %4$s.</string>
     <string name="hint_x_wing_col_detail">Number %1$s forms an X-Wing in columns %2$s, appearing only in rows %3$s, so %1$s can be removed from cells %4$s.</string>
+    <string name="hint_x_chain_title">X-Chain</string>
+    <string name="hint_x_chain_detail">Number %1$s forms a X-chain with path %2$s, so %1$s can be removed from cells %3$s.</string>
     <string name="hint_xy_wing_title">XY-Wing</string>
     <string name="hint_xy_wing_detail">XY-Wing formed with %1$s,%2$s,%3$s in cells %5$s(XZ), %4$s(XY), %6$s(YZ). so %3$s can be removed from cells %7$s.</string>
     <string name="hint_xy_chain_title">XY-Chain</string>

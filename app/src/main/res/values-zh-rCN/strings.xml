@@ -388,7 +388,7 @@
     <string name="advanced_hint_no_hint">无法得到提示。也许现在对我们来说太难了</string>
     <string name="update_channel">更新通道</string>
     <string name="advanced_hint_summary">实验性提示系统</string>
-    <string name="hint_naked_single_title">唯一余数</string>
+    <string name="hint_naked_single_title">显性唯一数</string>
     <string name="hint_hidden_single_title">隐性唯一数</string>
     <string name="hint_missing_or_wrong_note_title">缺失/错误候选数</string>
     <string name="hint_missing_note_title">缺失候选数</string>
@@ -421,13 +421,17 @@
     <string name="hint_finned_sashimi_jellyfish_col_detail">数字%1$s所在列%2$s的行%3$s，以及鳍%4$s，构成了带鳍退化水母（四阶鱼），所以可以排除%5$s格的%1$s</string>
     <string name="hint_finned_sashimi_jellyfish_row_detail">数字%1$s所在行%2$s的列%3$s，以及鳍%4$s，构成了带鳍退化水母（四阶鱼），所以可以排除%5$s格的%1$s</string>
     <string name="hint_fish_patterns_title">鱼</string>
-    <string name="hint_naked_subsets_detail">%1$s格中的数字%1$s构成了显性数组，所以这些数组所在的行/列/宫中其它有这些数字的格%3$s可以删除这些数字</string>
+    <string name="hint_naked_subsets_detail">%1$s格中的数字%2$s在同一个行/列/宫中构成了显性数组，所以其它格%3$s可以删除这些数字</string>
     <string name="hint_hidden_subsets_title">隐性数组</string>
-    <string name="hint_hidden_subsets_detail">数字%2$s在%1$s格中构成了隐性数组，所以%3$s中的其它数字可以删除</string>
+    <string name="hint_hidden_subsets_detail">%1$s格中的数字%2$s在同一个行/列/宫中构成了隐性数组，所以%3$s中的其它数字可以删除</string>
     <string name="hint_naked_subsets_title">显性数组</string>
+    <string name="hint_sue_de_coq_title">融合待定数组（SdC）</string>
+    <string name="hint_sue_de_coq_box_row_detail">第%1$s宫第%2$s行的%3$s含候选数{%4$s}，可拆出{%9$s}和{%10$s}，对应ALS为宫内%5$s的{%6$s}与行内%7$s的{%8$s}。可删除宫/行内其它格的{%11$s}/{%12$s}。</string>
+    <string name="hint_sue_de_coq_box_col_detail">第%1$s宫第%2$s列的%3$s含候选数{%4$s}，可拆出{%9$s}和{%10$s}，对应ALS为宫内%5$s的{%6$s}与列内%7$s的{%8$s}。可删除宫/列内其它格的{%11$s}/{%12$s}。</string>
     <string name="hint_x_wing_title">X翼（X-Wing）</string>
     <string name="hint_x_wing_col_detail">在列%2$s中，数字%1$s仅出现在了行%3$s，构成了X翼，所以%4$s中的数字%1$s可以删除</string>
     <string name="hint_x_wing_row_detail">在行%2$s中，数字%1$s仅出现在了列%3$s，构成了X翼，所以%4$s中的数字%1$s可以删除</string>
+    <string name="hint_x_chain_detail">数字%1$s构成了一条X链：%2$s，链两端共同可见格%3$s中的数字%1$s可以删除</string>
     <string name="hint_xy_wing_title">XY翼（XY-Wing）</string>
     <string name="hint_xy_wing_detail">在%5$s(XZ), %4$s(XY), %6$s(YZ)格中，数字%1$s,%2$s,%3$s构成了XY翼，所以%7$s中的%3$s可以删除</string>
     <string name="hint_xy_chain_title">XY链</string>
@@ -442,4 +446,5 @@
     <string name="hint_jellyfish_title">水母</string>
     <string name="hint_jellyfish_col_detail">在列%2$s中，数字%1$s仅出现在了行%3$s，构成了水母（四阶鱼），所以%4$s中的数字%1$s可以删除</string>
     <string name="hint_jellyfish_row_detail">在行%2$s中，数字%1$s仅出现在了列%3$s，构成了水母（四阶鱼），所以%4$s中的数字%1$s可以删除</string>
+    <string name="hint_x_chain_title">X链（X-Chain）</string>
 </resources>
