@@ -130,7 +130,7 @@ class GameViewModel @Inject constructor(
     val fontSize = appSettingsManager.fontSize
     val keepScreenOn = appSettingsManager.keepScreenOn
 
-    var remainingUsesList = emptyList<Int>()
+    var remainingUsesList by mutableStateOf(emptyList<Int>())
     val firstGame = appSettingsManager.firstGame
     private lateinit var boardEntity: SudokuBoard
     var size by mutableIntStateOf(9)

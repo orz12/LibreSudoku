@@ -48,6 +48,10 @@ class AdvancedHint(
     private val rows = getRows()
     private val columns = getColumns()
     private val boxes = getBoxes()
+    private val cellNotesCache: Map<Pair<Int, Int>, Set<Int>> by lazy {
+        notes.groupBy { Pair(it.row, it.col) }
+            .mapValues { (_, notes) -> notes.map { it.value }.toSet() }
+    }
 
     fun getEasiestHint(): AdvancedHintData? {
         val hint: AdvancedHintData? = null
@@ -783,10 +787,12 @@ class AdvancedHint(
      */
     private fun checkForSueDeCoq(): AdvancedHintData? {
         if (notes.isEmpty()) return null
+        for (boxNum in boxes.indices) {
+            val colsInBox = boxes[boxNum].map { it.col }
+            val rowsInBox = boxes[boxNum].map { it.row }
 
-        // 检查列与宫的交集
-        for (colNum in columns.indices) {
-            for (boxNum in boxes.indices) {
+            // 检查列与宫的交集
+            for (colNum in colsInBox) {
                 val hint = checkSueDeCoqForLineAndBox(
                     lineNum = colNum,
                     boxNum = boxNum,
@@ -794,10 +800,8 @@ class AdvancedHint(
                 )
                 if (hint != null) return hint
             }
-        }
-        // 检查行与宫的交集
-        for (rowNum in rows.indices) {
-            for (boxNum in boxes.indices) {
+            // 检查行与宫的交集
+            for (rowNum in rowsInBox) {
                 val hint = checkSueDeCoqForLineAndBox(
                     lineNum = rowNum,
                     boxNum = boxNum,
@@ -806,8 +810,6 @@ class AdvancedHint(
                 if (hint != null) return hint
             }
         }
-
-
         return null
     }
 
@@ -829,29 +831,38 @@ class AdvancedHint(
         val allIntersectionCells = line.intersect(box.toSet()).filter { it.value == 0 }.toList()
         if (allIntersectionCells.size < 2) return null
 
+        // 宫内其他空单元格（不在整个交集中）
+        val boxOtherCells = box.filter { cell ->
+            val isInIntersection = if (isRow) {
+                cell.row == lineNum
+            } else {
+                cell.col == lineNum
+            }
+            !isInIntersection && cell.value == 0
+        }
+        if (boxOtherCells.isEmpty()) return null
+        // 行/列内其他空单元格（不在宫中）
+        val lineOtherCells = line.filter { 
+            getBoxNumber(it.row, it.col) != boxNum && it.value == 0 
+        }
+        if (lineOtherCells.isEmpty()) return null
+
+        val combinationNotesCache = mutableMapOf<Set<Cell>, Set<Int>>()
+
+        fun getCombinationNotes(cells: List<Cell>): Set<Int> {
+            val key = cells.toSet()
+            return combinationNotesCache.getOrPut(key) {
+                cells.flatMap { getCellNotes(it) }.toSet()
+            }
+        }
+
         // 枚举交集的子集作为C，优先选择较小的集合（|C| >= 2）
         for (cSize in 2..allIntersectionCells.size) {
             for (cCombination in allIntersectionCells.combinations(cSize)) {
                 // V: 交集单元格C中的所有候选数，|V| >= |C| + 2
-                val vSet = cCombination.flatMap { getCellNotes(it) }.toSet()
+                // val vSet = cCombination.flatMap { getCellNotes(it) }.toSet()
+                val vSet = getCombinationNotes(cCombination)
                 if (vSet.size < cSize + 2) continue
-
-                // 宫内其他空单元格（不在整个交集中）
-                val boxOtherCells = box.filter { cell ->
-                    val isInIntersection = if (isRow) {
-                        cell.row == lineNum
-                    } else {
-                        cell.col == lineNum
-                    }
-                    !isInIntersection && cell.value == 0
-                }
-                
-                // 行/列内其他空单元格（不在宫中）
-                val lineOtherCells = line.filter { 
-                    getBoxNumber(it.row, it.col) != boxNum && it.value == 0 
-                }
-
-                if (boxOtherCells.isEmpty() || lineOtherCells.isEmpty()) continue
 
                 // 需要找到 |V| - |C| + n 个单元格（CB 和 CR）
                 val requiredCellsFromV = vSet.size - cSize
@@ -859,7 +870,8 @@ class AdvancedHint(
                 // 枚举 CB 的所有可能组合（至少1个）
                 for (cbSize in 1..minOf(boxOtherCells.size, requiredCellsFromV + 3)) {
                     for (cbCombination in boxOtherCells.combinations(cbSize)) {
-                        val vb = cbCombination.flatMap { getCellNotes(it) }.toSet()
+                        // val vb = cbCombination.flatMap { getCellNotes(it) }.toSet()
+                        val vb = getCombinationNotes(cbCombination)
                         if (vb.isEmpty()) continue
                         
                         // VB 中来自 V 的候选数
@@ -870,7 +882,8 @@ class AdvancedHint(
                         // 枚举 CR 的所有可能组合（至少1个）
                         for (crSize in 1..minOf(lineOtherCells.size, requiredCellsFromV + 3)) {
                             for (crCombination in lineOtherCells.combinations(crSize)) {
-                                val vr = crCombination.flatMap { getCellNotes(it) }.toSet()
+                                // val vr = crCombination.flatMap { getCellNotes(it) }.toSet()
+                                val vr = getCombinationNotes(crCombination)
                                 if (vr.isEmpty()) continue
                                 
                                 // VR 中来自 V 的候选数
@@ -1334,24 +1347,38 @@ class AdvancedHint(
     /**
      * 扩展函数，生成集合的所有可能组合
      */
-    private fun <T> Collection<T>.combinations(size: Int): List<List<T>> {
-        if (size <= 0 || size > this.size) return emptyList()
-        if (size == 1) return this.map { listOf(it) }
+    private fun <T> Collection<T>.combinations(size: Int): Sequence<List<T>> = sequence {
+        // if (size <= 0 || size > this.size) return emptyList()
+        // if (size == 1) return this.map { listOf(it) }
 
-        val result = mutableListOf<List<T>>()
-        val iterator = this.iterator()
-        var index = 0
+        // val result = mutableListOf<List<T>>()
+        // val iterator = this.iterator()
+        // var index = 0
 
-        while (iterator.hasNext()) {
-            val element = iterator.next()
-            val remaining = this.drop(index + 1)
+        // while (iterator.hasNext()) {
+        //     val element = iterator.next()
+        //     val remaining = this.drop(index + 1)
 
-            for (combination in remaining.combinations(size - 1)) {
-                result.add(listOf(element) + combination)
-            }
-            index++
+        //     for (combination in remaining.combinations(size - 1)) {
+        //         result.add(listOf(element) + combination)
+        //     }
+        //     index++
+        // }
+        // return result
+        if (size <= 0 || size > this@combinations.size) return@sequence
+        if (size == 1) {
+            this@combinations.forEach { yield(listOf(it)) }
+            return@sequence
         }
-        return result
+
+        val list = this@combinations.toList()
+        for (i in 0..list.size - size) {
+            val first = list[i]
+            val rest = list.subList(i + 1, list.size)
+            for (combination in rest.combinations(size - 1)) {
+                yield(listOf(first) + combination)
+            }
+        }
     }
 
     /**
@@ -2074,9 +2101,10 @@ class AdvancedHint(
 
     // 辅助方法：获取单元格的候选数
     private fun getCellNotes(cell: Cell): Set<Int> {
-        return notes.filter { note ->
-            note.row == cell.row && note.col == cell.col
-        }.map { it.value }.toSet()
+        // return notes.filter { note ->
+        //     note.row == cell.row && note.col == cell.col
+        // }.map { it.value }.toSet()
+        return cellNotesCache[Pair(cell.row, cell.col)] ?: emptySet()
     }
 
     // 辅助方法：检查两个单元格是否在同一组（行、列或宫）

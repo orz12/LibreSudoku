@@ -19,19 +19,28 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Brush
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +53,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,6 +90,9 @@ import com.kaajjo.libresudoku.ui.components.AdvancedHintContainer
 import com.kaajjo.libresudoku.ui.components.AnimatedNavigation
 import com.kaajjo.libresudoku.ui.components.board.Board
 import com.kaajjo.libresudoku.ui.game.components.DefaultGameKeyboard
+import com.kaajjo.libresudoku.ui.game.components.DrawingCanvas
+import com.kaajjo.libresudoku.ui.game.components.DrawingState
+import com.kaajjo.libresudoku.ui.game.components.DrawingToolbar
 import com.kaajjo.libresudoku.ui.game.components.GameMenu
 import com.kaajjo.libresudoku.ui.game.components.NotesMenu
 import com.kaajjo.libresudoku.ui.game.components.SquareGameKeyboard
@@ -168,133 +181,48 @@ fun GameScreen(
 
     var renderNotes by remember { mutableStateOf(true) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    IconButton(onClick = { navigator.popBackStack() }) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_round_arrow_back_24),
-                            contentDescription = null
-                        )
-                    }
-                },
-                actions = {
-                    AnimatedVisibility(visible = viewModel.endGame && (viewModel.mistakesCount >= PreferencesConstants.MISTAKES_LIMIT || viewModel.giveUp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            FilledTonalButton(
-                                onClick = { viewModel.showSolution = !viewModel.showSolution }
-                            ) {
-                                AnimatedContent(
-                                    if (viewModel.showSolution) stringResource(R.string.action_show_mine_sudoku)
-                                    else stringResource(R.string.action_show_solution),
-                                    label = "Show solution/mine button"
-                                ) {
-                                    Text(it)
-                                }
-                            }
-                        }
-                    }
+    // 绘画功能状态（使用 rememberSaveable 保存横竖屏切换时的状态）
+    // 默认使用 Material3 的 primary 颜色
+    val defaultDrawingColor = MaterialTheme.colorScheme.primary
+    var drawingState by rememberSaveable(stateSaver = DrawingState.Saver) { 
+        mutableStateOf(DrawingState(currentColor = defaultDrawingColor)) 
+    }
 
-                    AnimatedVisibility(visible = !viewModel.endGame) {
-                        val rotationAngle by animateFloatAsState(
-                            targetValue = if (viewModel.gamePlaying) 0f else 360f,
-                            label = "Play/Pause game icon rotation"
-                        )
-                        IconButton(onClick = {
-                            if (!viewModel.gamePlaying) viewModel.startTimer() else viewModel.pauseTimer()
-                            viewModel.currCell = Cell(-1, -1, 0)
-                        }) {
-                            Icon(
-                                modifier = Modifier.rotate(rotationAngle),
-                                painter = painterResource(
-                                    if (viewModel.gamePlaying) {
-                                        R.drawable.ic_round_pause_24
-                                    } else {
-                                        R.drawable.ic_round_play_24
-                                    }
-                                ),
-                                contentDescription = null
-                            )
-                        }
-                    }
+    // 获取屏幕方向
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-                    AnimatedVisibility(visible = !viewModel.endGame) {
-                        IconButton(onClick = { viewModel.restartDialog = true }) {
-                            Icon(
-                                modifier = Modifier.rotate(restartButtonAnimation),
-                                painter = painterResource(R.drawable.ic_round_replay_24),
-                                contentDescription = null
-                            )
-                        }
-                    }
-                    AnimatedVisibility(visible = !viewModel.endGame) {
-                        Box {
-                            IconButton(onClick = { viewModel.showMenu = !viewModel.showMenu }) {
-                                Icon(
-                                    Icons.Default.MoreVert,
-                                    contentDescription = null
-                                )
-                            }
-                            GameMenu(
-                                expanded = viewModel.showMenu,
-                                onDismiss = { viewModel.showMenu = false },
-                                onGiveUpClick = {
-                                    viewModel.pauseTimer()
-                                    viewModel.giveUpDialog = true
-                                },
-                                onSettingsClick = {
-                                    navigator.navigate(
-                                        SettingsCategoriesScreenDestination(
-                                            launchedFromGame = true
-                                        )
-                                    )
-                                    viewModel.showMenu = false
-                                },
-                                onExportClick = {
-                                    val stringBoard = SudokuParser().boardToString(
-                                        viewModel.gameBoard,
-                                        emptySeparator = '.'
-                                    )
-                                    clipboardManager.setText(
-                                        AnnotatedString(
-                                            stringBoard.uppercase()
-                                        )
-                                    )
+    // 组件已提取到 GameScreenComponents.kt
 
-                                    if (SDK_INT < 33) {
-                                        Toast.makeText(
-                                            context,
-                                            R.string.export_string_state_copied,
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            )
-        }
-    ) { scaffoldPaddings ->
-        val configuration = LocalConfiguration.current
-        val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
+    // 完全去掉 Scaffold，直接构建布局
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
         if (isLandscape) {
+            // 横屏模式：左中右三栏布局
             Row(
-                modifier = Modifier
-                    .padding(scaffoldPaddings)
-                    .padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                modifier = Modifier.fillMaxSize()
             ) {
+                // 左侧：返回按钮（固定宽度）
+                IconButton(
+                    onClick = { navigator.popBackStack() },
+                    modifier = Modifier.padding(start = 8.dp, top = 8.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_round_arrow_back_24),
+                        contentDescription = "返回"
+                    )
+                }
+                
+                // 中间：棋盘（占据大部分空间）
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(fraction = 0.5f)
-                        .padding(horizontal = 12.dp)
-                        .padding(bottom = 8.dp),
+                        // .weight(1f, fill = true)
+                        .fillMaxHeight()
+                        .padding(vertical = 8.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     GameBoard(
@@ -311,87 +239,117 @@ fun GameScreen(
                         advancedHintData = advancedHintData,
                         renderNotes = renderNotes,
                         crossHighlight = crossHighlight,
-                        localView = localView
+                        localView = localView,
+                        drawingState = drawingState,
+                        onDrawingStateChange = { transform -> drawingState = transform(drawingState) }
                     )
                 }
-
-                AnimatedContent(advancedHintMode) { targetState ->
-                    if (targetState) {
-                        advancedHintData?.let { hintData ->
-                            AdvancedHintContainer(
-                                advancedHintData = hintData,
-                                onApplyClick = {
-                                    viewModel.applyAdvancedHint()
-                                },
-                                onBackClick = {
-                                    viewModel.cancelAdvancedHint()
-                                },
-                                onSettingsClick = {
-                                    navigator.navigate(
-                                        SettingsAdvancedHintScreenDestination
-                                    )
-                                }
-                            )
-                        }
-                        if (advancedHintData == null) {
-                            AdvancedHintContainer(
-                                advancedHintData = AdvancedHintData(
-                                    titleRes = R.string.advanced_hint_no_hint_title,
-                                    textResWithArg = Pair(
-                                        R.string.advanced_hint_no_hint,
-                                        emptyList()
+                
+                // 右侧：控制按钮和工具（限制最大宽度）
+                Column(
+                    modifier = Modifier
+                        .width(480.dp)
+                        .fillMaxHeight()
+                        .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)
+                ) {
+                    // 顶部按钮行和游戏信息
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // 使用抽取的组件
+                        TopGameBar(
+                            modifier = Modifier.fillMaxWidth(),
+                            showBackButton = false,
+                            arrangement = Arrangement.SpaceEvenly,
+                            viewModel = viewModel,
+                            navigator = navigator,
+                            drawingState = drawingState,
+                            onDrawingStateChange = { drawingState = it },
+                            restartButtonAnimation = restartButtonAnimation,
+                            isLandscape = isLandscape
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // 使用抽取的游戏信息显示组件
+                        GameInfoDisplay(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            viewModel = viewModel,
+                            mistakesLimit = mistakesLimit,
+                            errorHighlight = errorHighlight
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+                    
+                    // 下方内容区域 - 优先显示 AdvancedHint
+                    AnimatedContent(advancedHintMode, label = "advanced_hint_landscape") { isAdvancedHint ->
+                        if (isAdvancedHint) {
+                            // 显示 AdvancedHint
+                            advancedHintData?.let { hintData ->
+                                AdvancedHintContainer(
+                                    advancedHintData = hintData,
+                                    onApplyClick = {
+                                        viewModel.applyAdvancedHint()
+                                    },
+                                    onBackClick = {
+                                        viewModel.cancelAdvancedHint()
+                                    },
+                                    onSettingsClick = {
+                                        navigator.navigate(
+                                            SettingsAdvancedHintScreenDestination
+                                        )
+                                    }
+                                )
+                            }
+                            if (advancedHintData == null) {
+                                AdvancedHintContainer(
+                                    advancedHintData = AdvancedHintData(
+                                        titleRes = R.string.advanced_hint_no_hint_title,
+                                        textResWithArg = Pair(
+                                            R.string.advanced_hint_no_hint,
+                                            emptyList()
+                                        ),
+                                        targetCells = emptyList(),
+                                        helpCells = emptyList()
                                     ),
-                                    targetCells = emptyList(),
-                                    helpCells = emptyList()
-                                ),
-                                onApplyClick = null,
-                                onBackClick = {
-                                    viewModel.cancelAdvancedHint()
-                                },
-                                onSettingsClick = {
-                                    navigator.navigate(
-                                        SettingsAdvancedHintScreenDestination
-                                    )
-                                }
-                            )
-                        }
-                    } else {
-                        AnimatedContent(!viewModel.endGame, label = "") { contentState ->
-                            if (contentState) {
-                                Column(
-                                    Modifier
-                                        .fillMaxSize()
-                                        .padding(bottom = 8.dp),
-                                    verticalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    AnimatedVisibility(visible = !viewModel.endGame) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            TopBoardSection(stringResource(viewModel.gameDifficulty.resName))
-
-                                            if (mistakesLimit && errorHighlight != 0) {
-                                                TopBoardSection(
-                                                    stringResource(
-                                                        R.string.mistakes_number_out_of,
-                                                        viewModel.mistakesCount,
-                                                        3
-                                                    )
+                                    onApplyClick = null,
+                                    onBackClick = {
+                                        viewModel.cancelAdvancedHint()
+                                    },
+                                    onSettingsClick = {
+                                        navigator.navigate(
+                                            SettingsAdvancedHintScreenDestination
+                                        )
+                                    }
+                                )
+                            }
+                        } else {
+                            // 非 AdvancedHint 模式
+                            AnimatedContent(!viewModel.endGame, label = "game_content_landscape") { contentState ->
+                                if (contentState) {
+                                    AnimatedContent(drawingState.isDrawingMode, label = "drawing_mode_landscape") { isDrawing ->
+                                        if (isDrawing) {
+                                            // 绘画工具栏
+                                            Column {
+                                                DrawingToolbar(
+                                                    selectedColor = drawingState.currentColor,
+                                                    onColorSelected = { color ->
+                                                        drawingState = drawingState.changeColor(color)
+                                                    },
+                                                    onUndo = {
+                                                        drawingState = drawingState.undo()
+                                                    },
+                                                    onClear = {
+                                                        drawingState = drawingState.clear()
+                                                    },
+                                                    canUndo = drawingState.paths.isNotEmpty()
                                                 )
                                             }
-
-                                            val timerEnabled by viewModel.timerEnabled.collectAsStateWithLifecycle(
-                                                initialValue = PreferencesConstants.DEFAULT_SHOW_TIMER
-                                            )
-                                            AnimatedVisibility(visible = timerEnabled || viewModel.endGame) {
-                                                TopBoardSection(viewModel.timeText)
-                                            }
-                                        }
-                                    }
-                                    Column(
+                                        } else {
+                                            // 数字键盘和工具栏
+                                            Column(
                                         verticalArrangement = if (funKeyboardOverNum) ReverseArrangement else Arrangement.Top
                                     ) {
                                         SquareGameKeyboard(
@@ -412,28 +370,19 @@ fun GameScreen(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             modifier = Modifier.padding(vertical = 8.dp)
                                         ) {
-                                            Box(
-                                                modifier = Modifier.weight(1f)
-                                            ) {
+                                            Box(modifier = Modifier.weight(1f)) {
                                                 UndoRedoMenu(
                                                     expanded = viewModel.showUndoRedoMenu,
-                                                    onDismiss = {
-                                                        viewModel.showUndoRedoMenu = false
-                                                    },
+                                                    onDismiss = { viewModel.showUndoRedoMenu = false },
                                                     onRedoClick = {
-                                                        viewModel.toolbarClick(
-                                                            ToolBarItem.Redo
-                                                        )
+                                                        viewModel.toolbarClick(ToolBarItem.Redo)
                                                     }
                                                 )
                                                 ToolbarItem(
                                                     painter = painterResource(R.drawable.ic_round_undo_24),
                                                     onClick = { viewModel.toolbarClick(ToolBarItem.Undo) },
-                                                    onLongClick = {
-                                                        viewModel.showUndoRedoMenu = true
-                                                    }
+                                                    onLongClick = { viewModel.showUndoRedoMenu = true }
                                                 )
-
                                             }
                                             val hintsDisabled by viewModel.disableHints.collectAsStateWithLifecycle(
                                                 initialValue = PreferencesConstants.DEFAULT_HINTS_DISABLED
@@ -445,19 +394,14 @@ fun GameScreen(
                                                     onClick = { viewModel.toolbarClick(ToolBarItem.Hint) }
                                                 )
                                             }
-
-                                            Box(
-                                                modifier = Modifier.weight(1f)
-                                            ) {
+                                            Box(modifier = Modifier.weight(1f)) {
                                                 NotesMenu(
                                                     expanded = viewModel.showNotesMenu,
                                                     onDismiss = { viewModel.showNotesMenu = false },
                                                     onComputeNotesClick = { viewModel.computeNotes() },
                                                     onClearNotesClick = { viewModel.clearNotes() },
                                                     renderNotes = renderNotes,
-                                                    onRenderNotesClick = {
-                                                        renderNotes = !renderNotes
-                                                    }
+                                                    onRenderNotesClick = { renderNotes = !renderNotes }
                                                 )
                                                 ToolbarItem(
                                                     painter = painterResource(R.drawable.ic_round_edit_24),
@@ -465,27 +409,20 @@ fun GameScreen(
                                                     onClick = { viewModel.toolbarClick(ToolBarItem.Note) },
                                                     onLongClick = {
                                                         if (viewModel.gamePlaying) {
-                                                            localView.performHapticFeedback(
-                                                                HapticFeedbackConstants.VIRTUAL_KEY
-                                                            )
+                                                            localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                                             viewModel.showNotesMenu = true
                                                         }
                                                     }
                                                 )
-
                                             }
                                             ToolbarItem(
                                                 modifier = Modifier.weight(1f),
                                                 painter = painterResource(R.drawable.ic_eraser_24),
                                                 toggled = viewModel.eraseButtonToggled,
-                                                onClick = {
-                                                    viewModel.toolbarClick(ToolBarItem.Remove)
-                                                },
+                                                onClick = { viewModel.toolbarClick(ToolBarItem.Remove) },
                                                 onLongClick = {
                                                     if (viewModel.gamePlaying) {
-                                                        localView.performHapticFeedback(
-                                                            HapticFeedbackConstants.VIRTUAL_KEY
-                                                        )
+                                                        localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                                         viewModel.toggleEraseButton()
                                                     }
                                                 }
@@ -503,70 +440,70 @@ fun GameScreen(
                                             }
                                         }
                                     }
+                                        }
+                                    }
+                                } else {
+                                    // 游戏完成界面
+                                    val allRecords by viewModel.allRecords.collectAsStateWithLifecycle(
+                                        initialValue = emptyList()
+                                    )
+                                    AfterGameStats(
+                                        difficulty = viewModel.gameDifficulty,
+                                        type = viewModel.gameType,
+                                        hintsUsed = viewModel.hintsUsed,
+                                        mistakesMade = viewModel.mistakesMade,
+                                        mistakesLimit = mistakesLimit,
+                                        mistakesLimitCount = viewModel.mistakesCount,
+                                        giveUp = viewModel.giveUp,
+                                        notesTaken = viewModel.notesTaken,
+                                        records = allRecords,
+                                        timeText = viewModel.timeText
+                                    )
                                 }
-                            } else {
-                                // Game completed section
-                                val allRecords by viewModel.allRecords.collectAsStateWithLifecycle(
-                                    initialValue = emptyList()
-                                )
-                                AfterGameStats(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    difficulty = viewModel.gameDifficulty,
-                                    type = viewModel.gameType,
-                                    hintsUsed = viewModel.hintsUsed,
-                                    mistakesMade = viewModel.mistakesMade,
-                                    mistakesLimit = mistakesLimit,
-                                    mistakesLimitCount = viewModel.mistakesCount,
-                                    giveUp = viewModel.giveUp,
-                                    notesTaken = viewModel.notesTaken,
-                                    records = allRecords,
-                                    timeText = viewModel.timeText
-                                )
                             }
                         }
                     }
                 }
             }
+            // 横屏布局结束
         } else {
+            // 竖屏布局
             Column(
                 modifier = Modifier
-                    .padding(scaffoldPaddings)
-                    .padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.SpaceEvenly
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                AnimatedVisibility(visible = !viewModel.endGame) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 24.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        TopBoardSection(stringResource(viewModel.gameDifficulty.resName))
+                // 顶部：操作栏和游戏信息
+                TopGameBar(
+                    modifier = Modifier.fillMaxWidth(),
+                    showBackButton = true,
+                    arrangement = Arrangement.SpaceBetween,
+                    viewModel = viewModel,
+                    navigator = navigator,
+                    drawingState = drawingState,
+                    onDrawingStateChange = { drawingState = it },
+                    restartButtonAnimation = restartButtonAnimation,
+                    isLandscape = isLandscape
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // 游戏信息显示（横向分布）
+                GameInfoDisplay(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    viewModel = viewModel,
+                    mistakesLimit = mistakesLimit,
+                    errorHighlight = errorHighlight
+                )
 
-                        if (mistakesLimit && errorHighlight != 0) {
-                            TopBoardSection(
-                                stringResource(
-                                    R.string.mistakes_number_out_of,
-                                    viewModel.mistakesCount,
-                                    3
-                                )
-                            )
-                        }
+                Spacer(modifier = Modifier.height(12.dp))
 
-                        val timerEnabled by viewModel.timerEnabled.collectAsStateWithLifecycle(
-                            initialValue = PreferencesConstants.DEFAULT_SHOW_TIMER
-                        )
-                        AnimatedVisibility(visible = timerEnabled || viewModel.endGame) {
-                            TopBoardSection(viewModel.timeText)
-                        }
-                    }
-                }
-
+                // 中间：棋盘
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
                     GameBoard(
                         viewModel = viewModel,
@@ -582,10 +519,15 @@ fun GameScreen(
                         advancedHintData = advancedHintData,
                         renderNotes = renderNotes,
                         crossHighlight = crossHighlight,
-                        localView = localView
+                        localView = localView,
+                        drawingState = drawingState,
+                        onDrawingStateChange = { transform -> drawingState = transform(drawingState) }
                     )
                 }
 
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 底部：工具栏和键盘
                 AnimatedContent(advancedHintMode) { targetState ->
                     if (targetState) {
                         advancedHintData?.let { hintData ->
@@ -629,105 +571,128 @@ fun GameScreen(
                     } else {
                         AnimatedContent(!viewModel.endGame, label = "") { contentState ->
                             if (contentState) {
-                                Column(
-                                    verticalArrangement = if (funKeyboardOverNum) ReverseArrangement else Arrangement.Top
-                                ) {
-                                    DefaultGameKeyboard(
-                                        size = viewModel.size,
-                                        remainingUses = if (remainingUse) viewModel.remainingUsesList else null,
-                                        onClick = {
-                                            viewModel.processInputKeyboard(number = it)
-                                        },
-                                        onLongClick = {
-                                            viewModel.processInputKeyboard(
-                                                number = it,
-                                                longTap = true
-                                            )
-                                        },
-                                        selected = viewModel.digitFirstNumber
-                                    )
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.padding(vertical = 8.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.weight(1f)
+                                AnimatedContent(drawingState.isDrawingMode, label = "drawing_mode_portrait") { isDrawing ->
+                                    if (isDrawing) {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            UndoRedoMenu(
-                                                expanded = viewModel.showUndoRedoMenu,
-                                                onDismiss = { viewModel.showUndoRedoMenu = false },
-                                                onRedoClick = { viewModel.toolbarClick(ToolBarItem.Redo) }
-                                            )
-                                            ToolbarItem(
-                                                painter = painterResource(R.drawable.ic_round_undo_24),
-                                                onClick = { viewModel.toolbarClick(ToolBarItem.Undo) },
-                                                onLongClick = { viewModel.showUndoRedoMenu = true }
-                                            )
-
-                                        }
-                                        val hintsDisabled by viewModel.disableHints.collectAsStateWithLifecycle(
-                                            initialValue = PreferencesConstants.DEFAULT_HINTS_DISABLED
-                                        )
-                                        if (!hintsDisabled) {
-                                            ToolbarItem(
-                                                modifier = Modifier.weight(1f),
-                                                painter = painterResource(R.drawable.ic_lightbulb_stars_24),
-                                                onClick = { viewModel.toolbarClick(ToolBarItem.Hint) }
+                                            DrawingToolbar(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                selectedColor = drawingState.currentColor,
+                                                onColorSelected = { color ->
+                                                    drawingState = drawingState.changeColor(color)
+                                                },
+                                                onUndo = {
+                                                    drawingState = drawingState.undo()
+                                                },
+                                                onClear = {
+                                                    drawingState = drawingState.clear()
+                                                },
+                                                canUndo = drawingState.paths.isNotEmpty()
                                             )
                                         }
-
-                                        Box(
-                                            modifier = Modifier.weight(1f)
+                                    } else {
+                                        Column(
+                                            verticalArrangement = if (funKeyboardOverNum) ReverseArrangement else Arrangement.Top
                                         ) {
-                                            NotesMenu(
-                                                expanded = viewModel.showNotesMenu,
-                                                onDismiss = { viewModel.showNotesMenu = false },
-                                                onComputeNotesClick = { viewModel.computeNotes() },
-                                                onClearNotesClick = { viewModel.clearNotes() },
-                                                renderNotes = renderNotes,
-                                                onRenderNotesClick = { renderNotes = !renderNotes }
-                                            )
-                                            ToolbarItem(
-                                                painter = painterResource(R.drawable.ic_round_edit_24),
-                                                toggled = viewModel.notesToggled,
-                                                onClick = { viewModel.toolbarClick(ToolBarItem.Note) },
+                                            DefaultGameKeyboard(
+                                                size = viewModel.size,
+                                                remainingUses = if (remainingUse) viewModel.remainingUsesList else null,
+                                                onClick = {
+                                                    viewModel.processInputKeyboard(number = it)
+                                                },
                                                 onLongClick = {
-                                                    if (viewModel.gamePlaying) {
-                                                        localView.performHapticFeedback(
-                                                            HapticFeedbackConstants.VIRTUAL_KEY
-                                                        )
-                                                        viewModel.showNotesMenu = true
-                                                    }
-                                                }
-                                            )
-
-                                        }
-                                        ToolbarItem(
-                                            modifier = Modifier.weight(1f),
-                                            painter = painterResource(R.drawable.ic_eraser_24),
-                                            toggled = viewModel.eraseButtonToggled,
-                                            onClick = {
-                                                viewModel.toolbarClick(ToolBarItem.Remove)
-                                            },
-                                            onLongClick = {
-                                                if (viewModel.gamePlaying) {
-                                                    localView.performHapticFeedback(
-                                                        HapticFeedbackConstants.VIRTUAL_KEY
+                                                    viewModel.processInputKeyboard(
+                                                        number = it,
+                                                        longTap = true
                                                     )
-                                                    viewModel.toggleEraseButton()
+                                                },
+                                                selected = viewModel.digitFirstNumber
+                                            )
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                modifier = Modifier.padding(vertical = 8.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    UndoRedoMenu(
+                                                        expanded = viewModel.showUndoRedoMenu,
+                                                        onDismiss = { viewModel.showUndoRedoMenu = false },
+                                                        onRedoClick = { viewModel.toolbarClick(ToolBarItem.Redo) }
+                                                    )
+                                                    ToolbarItem(
+                                                        painter = painterResource(R.drawable.ic_round_undo_24),
+                                                        onClick = { viewModel.toolbarClick(ToolBarItem.Undo) },
+                                                        onLongClick = { viewModel.showUndoRedoMenu = true }
+                                                    )
+
+                                                }
+                                                val hintsDisabled by viewModel.disableHints.collectAsStateWithLifecycle(
+                                                    initialValue = PreferencesConstants.DEFAULT_HINTS_DISABLED
+                                                )
+                                                if (!hintsDisabled) {
+                                                    ToolbarItem(
+                                                        modifier = Modifier.weight(1f),
+                                                        painter = painterResource(R.drawable.ic_lightbulb_stars_24),
+                                                        onClick = { viewModel.toolbarClick(ToolBarItem.Hint) }
+                                                    )
+                                                }
+
+                                                Box(
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    NotesMenu(
+                                                        expanded = viewModel.showNotesMenu,
+                                                        onDismiss = { viewModel.showNotesMenu = false },
+                                                        onComputeNotesClick = { viewModel.computeNotes() },
+                                                        onClearNotesClick = { viewModel.clearNotes() },
+                                                        renderNotes = renderNotes,
+                                                        onRenderNotesClick = { renderNotes = !renderNotes }
+                                                    )
+                                                    ToolbarItem(
+                                                        painter = painterResource(R.drawable.ic_round_edit_24),
+                                                        toggled = viewModel.notesToggled,
+                                                        onClick = { viewModel.toolbarClick(ToolBarItem.Note) },
+                                                        onLongClick = {
+                                                            if (viewModel.gamePlaying) {
+                                                                localView.performHapticFeedback(
+                                                                    HapticFeedbackConstants.VIRTUAL_KEY
+                                                                )
+                                                                viewModel.showNotesMenu = true
+                                                            }
+                                                        }
+                                                    )
+
+                                                }
+                                                ToolbarItem(
+                                                    modifier = Modifier.weight(1f),
+                                                    painter = painterResource(R.drawable.ic_eraser_24),
+                                                    toggled = viewModel.eraseButtonToggled,
+                                                    onClick = {
+                                                        viewModel.toolbarClick(ToolBarItem.Remove)
+                                                    },
+                                                    onLongClick = {
+                                                        if (viewModel.gamePlaying) {
+                                                            localView.performHapticFeedback(
+                                                                HapticFeedbackConstants.VIRTUAL_KEY
+                                                            )
+                                                            viewModel.toggleEraseButton()
+                                                        }
+                                                    }
+                                                )
+                                                if (advancedHintEnabled) {
+                                                    ToolbarItem(
+                                                        modifier = Modifier.weight(1f),
+                                                        painter = rememberVectorPainter(Icons.Rounded.AutoAwesome),
+                                                        onClick = {
+                                                            if (viewModel.gamePlaying) {
+                                                                viewModel.getAdvancedHint()
+                                                            }
+                                                        }
+                                                    )
                                                 }
                                             }
-                                        )
-                                        if (advancedHintEnabled) {
-                                            ToolbarItem(
-                                                modifier = Modifier.weight(1f),
-                                                painter = rememberVectorPainter(Icons.Rounded.AutoAwesome),
-                                                onClick = {
-                                                    if (viewModel.gamePlaying) {
-                                                        viewModel.getAdvancedHint()
-                                                    }
-                                                }
-                                            )
                                         }
                                     }
                                 }
@@ -867,7 +832,9 @@ fun GameBoard(
     advancedHintData: AdvancedHintData?,
     renderNotes: Boolean,
     crossHighlight: Boolean,
-    localView: View
+    localView: View,
+    drawingState: DrawingState,
+    onDrawingStateChange: ((DrawingState) -> DrawingState) -> Unit
 ) {
     Box {
         Column(
@@ -898,17 +865,19 @@ fun GameBoard(
             notes = viewModel.notes,
             selectedCell = viewModel.currCell,
             onClick = { cell ->
-                viewModel.processInput(
-                    cell = cell,
-                    remainingUse = remainingUse,
-                )
-                if (!viewModel.gamePlaying) {
-                    localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                    viewModel.startTimer()
+                if (!drawingState.isDrawingMode) {
+                    viewModel.processInput(
+                        cell = cell,
+                        remainingUse = remainingUse,
+                    )
+                    if (!viewModel.gamePlaying) {
+                        localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        viewModel.startTimer()
+                    }
                 }
             },
             onLongClick = { cell ->
-                if (viewModel.processInput(cell, remainingUse, longTap = true)) {
+                if (!drawingState.isDrawingMode && viewModel.processInput(cell, remainingUse, longTap = true)) {
                     localView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 }
             },
@@ -921,7 +890,7 @@ fun GameBoard(
                 viewModel.digitFirstNumber > 0 -> viewModel.notes.filter { it.value == viewModel.digitFirstNumber }
                 else -> emptyList()
             },
-            enabled = viewModel.gamePlaying && !viewModel.endGame,
+            enabled = viewModel.gamePlaying && !viewModel.endGame && !drawingState.isDrawingMode,
             questions = !(viewModel.gamePlaying || viewModel.endGame) && SDK_INT < Build.VERSION_CODES.R,
             renderNotes = renderNotes && !viewModel.showSolution,
             zoomable = viewModel.gameType == GameType.Default12x12 || viewModel.gameType == GameType.Killer12x12,
@@ -933,6 +902,20 @@ fun GameBoard(
                     null
                 else advancedHintData?.targetCells
                 else null
+        )
+
+        // 绘画画布叠加层
+        DrawingCanvas(
+            modifier = Modifier.matchParentSize(),
+            drawingState = drawingState,
+            onAddPoint = { point ->
+                onDrawingStateChange { it.addPoint(point) }
+            },
+            onFinishPath = {
+                onDrawingStateChange { it.finishPath() }
+            },
+            enabled = drawingState.isDrawingMode,
+            alpha = if (drawingState.isDrawingMode) 1f else 0.4f
         )
     }
 }
