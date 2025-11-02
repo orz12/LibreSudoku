@@ -40,6 +40,7 @@ import com.kaajjo.libresudoku.core.Cell
 import com.kaajjo.libresudoku.core.Note
 import com.kaajjo.libresudoku.core.qqwing.Cage
 import com.kaajjo.libresudoku.core.qqwing.GameType
+import com.kaajjo.libresudoku.core.qqwing.advanced_hint.Chain
 import com.kaajjo.libresudoku.core.utils.SudokuParser
 import com.kaajjo.libresudoku.ui.theme.BoardColors
 import com.kaajjo.libresudoku.ui.theme.LibreSudokuTheme
@@ -111,7 +112,8 @@ fun Board(
     zoomable: Boolean = false,
     boardColors: SudokuBoardColors = LocalBoardColors.current,
     crossHighlight: Boolean = false,
-    cages: List<Cage> = emptyList()
+    cages: List<Cage> = emptyList(),
+    chain: Chain? = null
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -511,6 +513,19 @@ fun Board(
                     )
                 }
             }
+        }
+        
+        // 绘制 X-Chain 可视化叠加层
+        if (chain != null) {
+            com.kaajjo.libresudoku.ui.game.components.ChainOverlay(
+                chain = chain,
+                boardSize = size,
+                cellSize = cellSize,
+                cellSizeDivWidth = cellSizeDivWidth,
+                notePaint = notePaint,
+                killerSumBounds = killerSumBounds,
+                modifier = Modifier.matchParentSize()
+            )
         }
     }
 }

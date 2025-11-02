@@ -634,10 +634,9 @@ fun GameBoard(
                 cages = viewModel.cages,
                 cellsToHighlight = if (hintConfig.mode) hintConfig.data?.helpCells else null,
                 cellsToHighlightTarget =
-                        if (hintConfig.mode)
-                                if (hintConfig.data?.notesToRemove?.isNotEmpty() == true) null
-                                else hintConfig.data?.targetCells
-                        else null
+                        if (hintConfig.mode) hintConfig.data?.targetCells
+                        else null,
+                chain = if (hintConfig.mode) hintConfig.data?.chain else null
         )
 
         // 绘画画布叠加层

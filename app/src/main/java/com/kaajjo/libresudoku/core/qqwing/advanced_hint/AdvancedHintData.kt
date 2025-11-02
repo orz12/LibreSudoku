@@ -12,12 +12,14 @@ import com.kaajjo.libresudoku.core.Note
  * @property helpCells cells that help understand the hint
  * @property notesToAdd notes to add, the result of hint
  * @property notesToRemove notes to remove, the result of hint
+ * @property chain chain information for X-Chain hints
  */
 data class AdvancedHintData(
     val titleRes: Int,
     val textResWithArg: Pair<Int, List<String>>,
-    val targetCells: List<Cell>,
+    val targetCells: List<Cell>? = null,
     val helpCells: List<Cell>,
     val notesToAdd: List<Note>? = null,
     val notesToRemove: List<Note>? = null,
+    val chain: Chain? = null,
 )

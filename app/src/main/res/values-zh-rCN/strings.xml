@@ -439,7 +439,7 @@
     <string name="hint_xyz_wing_title">XYZ翼（XYZ-Wing）</string>
     <string name="hint_xyz_wing_detail">在%5$s(XZ), %4$s(XYZ), %6$s(YZ)格中，数字%1$s,%2$s,%3$s构成了XYZ翼，所以%7$s中的%2$s可以删除</string>
     <string name="hint_w_wing_title">W翼（W-Wing）</string>
-    <string name="hint_w_wing_detail">数字%1$s和%2$s构成了W翼，其中%4$s为翼（XY），%3$s为枢纽（含X），所以%5$s中的%2$s可以删除</string>
+    <string name="hint_w_wing_detail">数字%1$s和%2$s构成了W翼，其中%4$s为翼（XY），%3$s为枢纽（含X），翼的共同可见格%5$s中的%2$s可以删除</string>
     <string name="hint_swordfish_title">剑鱼</string>
     <string name="hint_swordfish_col_detail">在列%2$s中，数字%1$s仅出现在了行%3$s，构成了剑鱼（三阶鱼），所以%4$s中的数字%1$s可以删除</string>
     <string name="hint_swordfish_row_detail">在行%2$s中，数字%1$s仅出现在了列%3$s，构成了剑鱼（三阶鱼），所以%4$s中的数字%1$s可以删除</string>

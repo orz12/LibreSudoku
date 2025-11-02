@@ -167,17 +167,16 @@ class AdvancedHint(
             return@filter fullNotesForCell?.none { it.value == note.value } ?: true
         }
         if (cellNotesToRemove.isNotEmpty()) {
-            val targetCells = cellNotesToRemove.map { board[it.row][it.col] }.distinct()
+            val affectedCells = cellNotesToRemove.map { board[it.row][it.col] }.distinct()
             return AdvancedHintData(
                 titleRes = R.string.hint_wrong_note_title,
                 textResWithArg = Pair(
                     R.string.hint_wrong_note_detail,
                     listOf(
                         cellNotesToRemove.joinToString(",") { it.value.toString() },
-                        targetCells.joinToString(",") { cellStringFormat(it) }
+                        affectedCells.joinToString(",") { cellStringFormat(it) }
                     )
                 ),
-                targetCells = targetCells,
                 helpCells = emptyList(),
                 notesToRemove = cellNotesToRemove
             )
@@ -524,7 +523,6 @@ class AdvancedHint(
                 if (isRow) rowHint else colHint,
                 detailArgs
             ),
-            targetCells = targetCells,
             helpCells = sourceCells,
             notesToRemove = targetCells.flatMap { cell ->
                 notes.filter { note ->
@@ -745,21 +743,28 @@ class AdvancedHint(
 
         val numbersStr = subsetData.numbers.joinToString(", ")
         val cellsStr = subsetData.cells.joinToString(", ") { cellStringFormat(it) }
-        val targetCells = subsetData.notesToRemove
+        val affectedCells = subsetData.notesToRemove
             .map { note -> Cell(note.row, note.col, 0) }
             .distinct()
         val detailArgs = listOf(
             cellsStr,
             numbersStr,
-            targetCells.joinToString(", ") { cellStringFormat(it) }
+            affectedCells.joinToString(", ") { cellStringFormat(it) }
         )
+        // 借用chain提示圈出subsetData.cells中subsetData.numbers的候选数
+        val helpNotes = subsetData.cells.flatMap { cell ->
+            cellNotesCache[Pair(cell.row, cell.col)]!!.filter { it in subsetData.numbers }
+            .map { Note(cell.row, cell.col, it) }
+        }
+        val chainNodes = helpNotes.map { ChainNode(Cell(it.row, it.col, 0), it.value) }
+        val chain = Chain(nodes = chainNodes, edges = emptyList())
 
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
-            targetCells = targetCells,
-            helpCells = subsetData.cells.filter { it !in targetCells },
-            notesToRemove = subsetData.notesToRemove
+            helpCells = subsetData.cells.filter { it !in affectedCells },
+            notesToRemove = subsetData.notesToRemove,
+            chain = chain
         )
     }
 
@@ -1105,7 +1110,6 @@ class AdvancedHint(
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
-            targetCells = affectedCells,
             helpCells = helpCells.filter { !affectedCells.contains(it) } + intersectionCells,
             notesToRemove = notesToRemove
         )
@@ -1340,7 +1344,6 @@ class AdvancedHint(
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
-            targetCells = affectedCells,
             helpCells = helperCells.filter { !affectedCells.contains(it) },
             notesToRemove = notesToRemove
         )
@@ -1483,6 +1486,7 @@ class AdvancedHint(
     private data class XChainBfsNode (
         val currentCell: Cell,
         val path: List<Cell>,
+        val edgeTypes: List<ChainEdgeType>, // 边的类型历史（对应路径中的边）
         val lastChainType: ChainType?,
         val visited: Set<Cell>
     )
@@ -1558,7 +1562,7 @@ class AdvancedHint(
     BFS 寻找最短有效 X-Chain
     有效链需满足：强弱交替，以强链结尾，两端有共同可见单元格且含该数字候选*/
     private fun findShortestValidXChain (xCells: List<Cell>,adjacency: Map<Cell, List<Pair<Cell, ChainType>>>,num: Int): AdvancedHintData? {
-    // BFS 队列元素：(当前单元格，路径，最后一条链的类型，已访问单元格)
+    // BFS 队列元素：(当前单元格，路径，边类型历史，最后一条链的类型，已访问单元格)
         val queue = ArrayDeque<XChainBfsNode>()
         // 初始化队列：从每个单元格开始，以强链为起点
         xCells.forEach {startCell ->
@@ -1566,6 +1570,7 @@ class AdvancedHint(
                 XChainBfsNode(
                     currentCell = startCell,
                     path = listOf (startCell),
+                    edgeTypes = emptyList(),
                     lastChainType = null,
                     visited = setOf(startCell)
                 )
@@ -1575,24 +1580,47 @@ class AdvancedHint(
             val node = queue.removeFirst()
             val currentCell = node.currentCell
             val currentPath = node.path
+            val currentEdgeTypes = node.edgeTypes
             val lastType = node.lastChainType
             val visited = node.visited
             // 遍历当前单元格的所有连接
             for ((neighbor, chainType) in adjacency [currentCell] ?: emptyList ()) {
                 if (neighbor in visited) continue // 避免循环
-                // 检查链类型是否符合交替规则
-                val isValidTransition = when (lastType) {
-                    null -> chainType.isStrong() // 第一条链必须是强链
-                    ChainType.STRONG -> chainType.isWeak() // 强链后必须跟弱链
-                    ChainType.STRONG_AND_WEAK -> {
-                        if (currentPath.size % 2 == 0) chainType.isWeak() else chainType.isStrong()
+                // 检查链类型是否符合交替规则，并确定实际边类型
+                val (isValidTransition, actualEdgeType) = when (lastType) {
+                    null -> {
+                        // 第一条链必须是强链
+                        if (chainType.isStrong()) Pair(true, ChainEdgeType.STRONG)
+                        else Pair(false, ChainEdgeType.STRONG)
                     }
-                    ChainType.WEAK -> chainType.isStrong() // 弱链后必须跟强链
-                    ChainType.NONE -> false
+                    ChainType.STRONG -> {
+                        // 强链后必须跟弱链
+                        if (chainType.isWeak()) Pair(true, ChainEdgeType.WEAK)
+                        else Pair(false, ChainEdgeType.WEAK)
+                    }
+                    ChainType.STRONG_AND_WEAK -> {
+                        // 既是强链也是弱链（严格一真一假），交替规则为：偶数长度则自身视为强链，奇数长度则自身视为弱链
+                        if (currentPath.size % 2 == 0) {
+                            // 自身视为强链，下一条应为弱链
+                            if (chainType.isWeak()) Pair(true, ChainEdgeType.WEAK)
+                            else Pair(false, ChainEdgeType.WEAK)
+                        } else {
+                            // 自身视为弱链，下一条应为强链
+                            if (chainType.isStrong()) Pair(true, ChainEdgeType.STRONG)
+                            else Pair(false, ChainEdgeType.STRONG)
+                        }
+                    }
+                    ChainType.WEAK -> {
+                        // 弱链后必须跟强链
+                        if (chainType.isStrong()) Pair(true, ChainEdgeType.STRONG)
+                        else Pair(false, ChainEdgeType.STRONG)
+                    }
+                    ChainType.NONE -> Pair(false, ChainEdgeType.STRONG)
                 }
                 if (!isValidTransition) continue
-                // 构建新路径
+                // 构建新路径和新边类型列表
                 val newPath = currentPath + neighbor
+                val newEdgeTypes = currentEdgeTypes + actualEdgeType
                 val newVisited = visited + neighbor
                 // 链长度至少为 4 且为偶数（包含起点和终点），且最后一条链必须是强链
                 if (newPath.size >= 4 && newPath.size % 2 == 0 && chainType.isStrong()) {
@@ -1609,11 +1637,23 @@ class AdvancedHint(
                         val notesToRemove =
                             commonVisible.flatMap { cell -> notes.filter { note -> note.row == cell.row && note.col == cell.col && note.value == num } }
                         if (notesToRemove.isNotEmpty()) {
+                            // 构建 Chain 对象
+                            val chainNodes = newPath.map { ChainNode(it, num) }
+                            val chainEdges = newPath.zipWithNext().mapIndexed { index, (from, to) ->
+                                ChainEdge(
+                                    from = ChainNode(from, num),
+                                    to = ChainNode(to, num),
+                                    type = newEdgeTypes[index]
+                                )
+                            }
+                            val chain = Chain(nodes = chainNodes, edges = chainEdges)
+                            
                             return createXChainHint(
                                 number = num,
                                 chainPath = newPath,
                                 affectedCells = commonVisible,
-                                notesToRemove = notesToRemove
+                                notesToRemove = notesToRemove,
+                                chain = chain
                             )
                         }
                     }
@@ -1624,6 +1664,7 @@ class AdvancedHint(
                     XChainBfsNode(
                         currentCell = neighbor,
                         path = newPath,
+                        edgeTypes = newEdgeTypes,
                         lastChainType = chainType,
                         visited = newVisited
                     )
@@ -1635,7 +1676,7 @@ class AdvancedHint(
     /**
         创建 X-Chain 提示数据对象
     **/
-    private fun createXChainHint (number: Int,chainPath: List<Cell>,affectedCells: List<Cell>,notesToRemove: List<Note>): AdvancedHintData {
+    private fun createXChainHint (number: Int,chainPath: List<Cell>,affectedCells: List<Cell>,notesToRemove: List<Note>,chain: Chain): AdvancedHintData {
         val titleRes = R.string.hint_x_chain_title
         val detailRes = R.string.hint_x_chain_detail
         // 格式化链路径和受影响单元格
@@ -1653,9 +1694,9 @@ class AdvancedHint(
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
-            targetCells = affectedCells,
             helpCells = chainPath,
-            notesToRemove = notesToRemove
+            notesToRemove = notesToRemove,
+            chain = chain
         )
     }
 
@@ -1740,7 +1781,6 @@ class AdvancedHint(
                 // 路径长度≥3时检查有效性
                 if (newPath.size >= 3) {
                     // 校验中间节点的候选数传递性（如a-b-c中，b的候选数必须是a-b和b-c的共享数）
-//                    if (!isValidMiddleNodes(newPath, cellNotes)) continue
 
                     // 校验两端节点的候选数（排除传递序列首尾后必须相同）
                     val (isValid, x) = checkEndNodes(newPath, cellNotes)
@@ -1760,11 +1800,16 @@ class AdvancedHint(
                             }
                         }
                         if (notesToRemove.isEmpty()) continue
+                        
+                        // 构建 Chain 对象
+                        val chain = buildXYChain(newPath, cellNotes)
+                        
                         return createXYChainHint(
                             path = newPath,
                             affectedCells = affectedCells,
                             numToRemove = x!!,
-                            notesToRemove = notesToRemove
+                            notesToRemove = notesToRemove,
+                            chain = chain
                         )
                     }
                 }
@@ -1787,6 +1832,56 @@ class AdvancedHint(
         val startNoteRemain = cellNotes[startPair.first]!!.first { it != startPair.second }
         val endNoteRemain = endPair.second
         return if (startNoteRemain == endNoteRemain) Pair(true, startNoteRemain) else Pair(false, null)
+    }
+    
+    /**
+     * 构建 XY-Chain 的 Chain 对象
+     * 
+     * 转义规则：
+     * 1. 从 startNoteRemain 开始
+     * 2. 和该格的 path[0].second 形成强链（同格内）
+     * 3. path[0].second 跨格到 path[1].second 为弱链（不同格相同候选数）
+     * 4. path[1].second 与 path[1] 所在格的另一个候选数形成强链（同格内）
+     * 5. 以此类推
+     */
+    private fun buildXYChain(
+        path: List<Pair<Cell, Int>>,
+        cellNotes: Map<Cell, Set<Int>>
+    ): Chain {
+        val nodes = mutableListOf<ChainNode>()
+        val edges = mutableListOf<ChainEdge>()
+        
+        // 第一个节点：起始格的另一个候选数
+        val firstCell = path[0].first
+
+        val startNoteRemain = cellNotes[path[0].first]!!.first { it != path[0].second }
+        nodes.add(ChainNode(firstCell, startNoteRemain))
+        
+        // 遍历 path 构建链
+        for (i in path.indices) {
+            val (cell, value) = path[i]
+            
+            // 添加当前 path 表示的节点
+            nodes.add(ChainNode(cell, value))
+            // 省略同格内的强链
+            edges.add(ChainEdge(
+                from = ChainNode(cell, cellNotes[cell]!!.first { it != value }),
+                to = ChainNode(cell, value),
+                type = ChainEdgeType.STRONG
+            ))
+
+            if (i < path.size - 1) {
+                val nextCell = path[i + 1].first
+                edges.add(ChainEdge(
+                    from = ChainNode(cell, value),
+                    to = ChainNode(nextCell, value),
+                    type = ChainEdgeType.WEAK
+                ))
+                nodes.add(ChainNode(nextCell, value))
+            }
+        }
+        
+        return Chain(nodes = nodes, edges = edges)
     }
 
     /**
@@ -1985,12 +2080,24 @@ class AdvancedHint(
             numberX.toString(), numberY.toString(),
             pivotStr, wingStr, affectedStr
         )
+        // 在pivotCells的候选数X之间加一个强链
+        // 额外圈出wingCells的候选数Y
+        val chainNodes = pivotCells.map { ChainNode(it, numberX) }
+                    .plus(wingCells.map { ChainNode(it, numberY) })
+        val chainEdges = pivotCells.zipWithNext().map { (from, to) ->
+            ChainEdge(
+                from = ChainNode(from, numberX),
+                to = ChainNode(to, numberX),
+                type = ChainEdgeType.STRONG
+            )
+        }
+        val chain = Chain(nodes = chainNodes, edges = chainEdges)
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
-            targetCells = affectedCells,
             helpCells = pivotCells + wingCells,
-            notesToRemove = notesToRemove
+            notesToRemove = notesToRemove,
+            chain = chain
         )
     }
 
@@ -2033,7 +2140,6 @@ class AdvancedHint(
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
-            targetCells = affectedCells,
             helpCells = listOf(pivotCell) + wingCells,
             notesToRemove = notesToRemove
         )
@@ -2044,7 +2150,8 @@ class AdvancedHint(
         path: List<Pair<Cell,Int>>,
         affectedCells: List<Cell>,
         numToRemove: Int,
-        notesToRemove: List<Note>
+        notesToRemove: List<Note>,
+        chain: Chain
     ): AdvancedHintData {
         val titleRes = R.string.hint_xy_chain_title
         val detailRes = R.string.hint_xy_chain_detail
@@ -2061,9 +2168,9 @@ class AdvancedHint(
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
-            targetCells = affectedCells,
             helpCells = path.map { it.first },
-            notesToRemove = notesToRemove
+            notesToRemove = notesToRemove,
+            chain = chain
         )
 
     }
@@ -2410,7 +2517,6 @@ class AdvancedHint(
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
-            targetCells = affectedCells,
             helpCells = helpCells.filter { !affectedCells.contains(it) },
             notesToRemove = notesToRemove
         )
@@ -2638,7 +2744,6 @@ class AdvancedHint(
                     affectedCellsStr
                 )
             ),
-            targetCells = affectedCells,
             helpCells = baseKeys.flatMap { key ->
                 basePositions.map { pos ->
                     if (isRowBased) board[key][pos] else board[pos][key]
@@ -2695,7 +2800,6 @@ class AdvancedHint(
                     affectedCellsStr
                 )
             ),
-            targetCells = affectedCells,
             helpCells = baseKeys.flatMap { key ->
                 basePositions.map { pos ->
                     if (isRowBased) board[key][pos] else board[pos][key]
