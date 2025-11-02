@@ -33,6 +33,8 @@ foundationLayout = "1.9.4"
 
 [libraries]
 # Android App
+# Compose Animation
+animation = { group = "androidx.compose.animation", name = "animation", version.ref = "compose" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose"}
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx"}

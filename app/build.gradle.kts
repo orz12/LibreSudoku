@@ -82,6 +82,7 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.activity.compose)
     implementation(libs.ui)
+    implementation(libs.animation)
     implementation(libs.ui.util)
     implementation(libs.ui.graphics)
     implementation(libs.ui.tooling.preview)
