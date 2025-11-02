@@ -812,7 +812,6 @@ class GameViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.Default) {
             currCell = Cell(-1, -1, 0)
             _advancedHintData.emit(null)
-            _advancedHintMode.emit(true)
             val hintSettings = runBlocking { appSettingsManager.advancedHintSettings.first() }
             val advancedHint = AdvancedHint(
                 type = boardEntity.type,
@@ -821,8 +820,9 @@ class GameViewModel @Inject constructor(
                 notes = notes,
                 settings = hintSettings
             )
-
-            _advancedHintData.emit(advancedHint.getEasiestHint())
+            val advancedHintData = advancedHint.getEasiestHint()
+            _advancedHintData.emit(advancedHintData)
+            _advancedHintMode.emit(true)
         }
     }
 

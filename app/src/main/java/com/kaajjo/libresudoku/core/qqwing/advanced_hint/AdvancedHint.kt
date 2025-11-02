@@ -1,12 +1,10 @@
 package com.kaajjo.libresudoku.core.qqwing.advanced_hint
 
-import androidx.compose.runtime.key
 import com.kaajjo.libresudoku.R
 import com.kaajjo.libresudoku.core.Cell
 import com.kaajjo.libresudoku.core.Note
 import com.kaajjo.libresudoku.core.qqwing.GameType
 import com.kaajjo.libresudoku.core.utils.SudokuUtils
-import java.util.Collections.min
 
 
 /**
@@ -47,10 +45,41 @@ class AdvancedHint(
 
     private val rows = getRows()
     private val columns = getColumns()
+    private val boxIndex: Array<IntArray> by lazy {
+        Array(type.size) { row ->
+            IntArray(type.size) { col ->
+                val sectionRow = row / type.sectionHeight
+                val sectionColumn = col / type.sectionWidth
+                val sectorsPerRow = type.size / type.sectionWidth
+                sectionRow * sectorsPerRow + sectionColumn
+            }
+        }
+    }
+    private fun getBoxIndex(row: Int, col: Int): Int = boxIndex[row][col]
     private val boxes = getBoxes()
     private val cellNotesCache: Map<Pair<Int, Int>, Set<Int>> by lazy {
         notes.groupBy { Pair(it.row, it.col) }
             .mapValues { (_, notes) -> notes.map { it.value }.toSet() }
+    }
+    private val visibleCellsCache: Map<Pair<Int, Int>, List<Cell>> by lazy {
+        val cache = mutableMapOf<Pair<Int, Int>, List<Cell>>()
+        for (r in 0 until type.size) {
+            for (c in 0 until type.size) {
+                val rowCells = rows[r]
+                val colCells = columns[c]
+                val boxCells = boxes[getBoxIndex(r, c)]
+                val set = LinkedHashSet<Cell>(rowCells.size + colCells.size + boxCells.size)
+                set.addAll(rowCells)
+                set.addAll(colCells)
+                set.addAll(boxCells)
+                val result = set.filterNot { it.row == r && it.col == c }
+                cache[Pair(r, c)] = result
+            }
+        }
+        cache
+    }
+    private val cellNoteIndex: Map<Triple<Int, Int, Int>, Note> by lazy {
+        notes.associateBy { Triple(it.row, it.col, it.value) }
     }
 
     fun getEasiestHint(): AdvancedHintData? {
@@ -266,13 +295,13 @@ class AdvancedHint(
             hiddenSingle = singlesInColumn
             helpCells = columns[singlesInColumn.col]
         }
-        val singlesInBox = tempNotes.groupBy { Pair(getBoxNumber(it.row, it.col), it.value) }
+        val singlesInBox = tempNotes.groupBy { Pair(getBoxIndex(it.row, it.col), it.value) }
             .filter { it.value.size == 1 }
             .map { it.value }
             .randomOrNull()?.first()
         if (singlesInBox != null) {
             hiddenSingle = singlesInBox
-            helpCells = boxes[getBoxNumber(singlesInBox.row, singlesInBox.col)]
+            helpCells = boxes[getBoxIndex(singlesInBox.row, singlesInBox.col)]
         }
         if (hiddenSingle == null) return null
         val cell = solvedBoard[hiddenSingle.row][hiddenSingle.col]
@@ -326,9 +355,7 @@ class AdvancedHint(
             for (num in 1..size) {
                 // 找出该宫内所有包含此数字的候选数单元格
                 val cellsWithNote = box.filter { cell ->
-                    notes.any { note ->
-                        note.row == cell.row && note.col == cell.col && note.value == num
-                    }
+                    cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true
                 }
 
                 if (cellsWithNote.size >= 2) {
@@ -339,10 +366,8 @@ class AdvancedHint(
                         // 找到此行中不在当前宫内但包含该数字候选的单元格
                         val cellsToRemoveNote = rows[row]
                             .filter { cell ->
-                                getBoxNumber(cell.row, cell.col) != boxNum &&
-                                        notes.any { note ->
-                                            note.row == cell.row && note.col == cell.col && note.value == num
-                                        }
+                                getBoxIndex(cell.row, cell.col) != boxNum &&
+                                cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true
                             }
 
                         if (cellsToRemoveNote.isNotEmpty()) {
@@ -363,10 +388,8 @@ class AdvancedHint(
                         // 找到此列中不在当前宫内但包含该数字候选的单元格
                         val cellsToRemoveNote = columns[col]
                             .filter { cell ->
-                                getBoxNumber(cell.row, cell.col) != boxNum &&
-                                        notes.any { note ->
-                                            note.row == cell.row && note.col == cell.col && note.value == num
-                                        }
+                                getBoxIndex(cell.row, cell.col) != boxNum &&
+                                cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true
                             }
 
                         if (cellsToRemoveNote.isNotEmpty()) {
@@ -401,23 +424,19 @@ class AdvancedHint(
             for (num in 1..size) {
                 // 找出该行中所有包含此数字的候选数单元格
                 val cellsWithNote = row.filter { cell ->
-                    notes.any { note ->
-                        note.row == cell.row && note.col == cell.col && note.value == num
-                    }
+                    cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true
                 }
 
                 if (cellsWithNote.size >= 2) {
                     // 检查是否所有单元格都在同一个宫内
-                    val boxNums = cellsWithNote.map { getBoxNumber(it.row, it.col) }.toSet()
+                    val boxNums = cellsWithNote.map { getBoxIndex(it.row, it.col) }.toSet()
                     if (boxNums.size == 1) {
                         val boxNum = boxNums.first()
                         // 找到该宫内不在当前行但包含该数字候选的单元格
                         val cellsToRemoveNote = boxes[boxNum]
                             .filter { cell ->
                                 cell.row != rowNum &&
-                                        notes.any { note ->
-                                            note.row == cell.row && note.col == cell.col && note.value == num
-                                        }
+                                cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true
                             }
 
                         if (cellsToRemoveNote.isNotEmpty()) {
@@ -442,23 +461,19 @@ class AdvancedHint(
             for (num in 1..size) {
                 // 找出该列中所有包含此数字的候选数单元格
                 val cellsWithNote = col.filter { cell ->
-                    notes.any { note ->
-                        note.row == cell.row && note.col == cell.col && note.value == num
-                    }
+                    cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true
                 }
 
                 if (cellsWithNote.size >= 2) {
                     // 检查是否所有单元格都在同一个宫内
-                    val boxNums = cellsWithNote.map { getBoxNumber(it.row, it.col) }.toSet()
+                    val boxNums = cellsWithNote.map { getBoxIndex(it.row, it.col) }.toSet()
                     if (boxNums.size == 1) {
                         val boxNum = boxNums.first()
                         // 找到该宫内不在当前列但包含该数字候选的单元格
                         val cellsToRemoveNote = boxes[boxNum]
                             .filter { cell ->
                                 cell.col != colNum &&
-                                        notes.any { note ->
-                                            note.row == cell.row && note.col == cell.col && note.value == num
-                                        }
+                                cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true
                             }
 
                         if (cellsToRemoveNote.isNotEmpty()) {
@@ -491,7 +506,7 @@ class AdvancedHint(
         val titleRes = R.string.hint_locked_candidates_title
 
         val sourceGroup = if (isRow) sourceCells.first().row + 1 else sourceCells.first().col + 1
-        val boxNumber = getBoxNumber(sourceCells.first().row, sourceCells.first().col) + 1
+        val boxNumber = getBoxIndex(sourceCells.first().row, sourceCells.first().col) + 1
 
         val detailArgs = listOf(
             number.toString(),
@@ -843,7 +858,7 @@ class AdvancedHint(
         if (boxOtherCells.isEmpty()) return null
         // 行/列内其他空单元格（不在宫中）
         val lineOtherCells = line.filter { 
-            getBoxNumber(it.row, it.col) != boxNum && it.value == 0 
+            getBoxIndex(it.row, it.col) != boxNum && it.value == 0 
         }
         if (lineOtherCells.isEmpty()) return null
 
@@ -1172,9 +1187,7 @@ class AdvancedHint(
                                 if (row != row1 && row != row2) {
                                     val cell = board[row][col]
                                     // 收集该单元格中需要移除的候选数
-                                    val note = notes.find {
-                                        it.row == row && it.col == col && it.value == num
-                                    }
+                                    val note = cellNoteIndex[Triple(row, col, num)]
                                     if (note != null) {
                                         notesToRemove.add(note)
                                         affectedCells.add(cell)
@@ -1521,29 +1534,17 @@ class AdvancedHint(
     弱链：同一单元中该数字出现在两个以上单元格（至少一个为假）
     互斥链：既是强链也是弱链（严格一真一假）*/
     private fun determineChainType (cellA: Cell, cellB: Cell, num: Int): ChainType {
-    // 确定两个单元格所在的共同单元（行 / 列 / 宫）
-//        val commonUnit = when {
-//            cellA.row == cellB.row -> rows[cellA.row] // 同一行
-//            cellA.col == cellB.col -> columns[cellA.col] // 同一列
-//            else -> boxes[getBoxNumber(cellA.row, cellA.col)] // 同一宫
-//        }
 
-        val xCountInCommonRow = if (cellA.row != cellB.row) 999 else rows[cellA.row].count{cell ->
-            cell.value == 0 && notes.any{note ->
-                note.row == cell.row && note.col == cell.col && note.value == num
-            }
+        val xCountInCommonRow = if (cellA.row != cellB.row) 999 else rows[cellA.row].count { cell ->
+            cell.value == 0 && (cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true)
         }
-        val xCountInCommonCol = if (cellA.col != cellB.col) 999 else columns[cellA.col].count{cell ->
-            cell.value == 0 && notes.any{note ->
-                note.row == cell.row && note.col == cell.col && note.value == num
-            }
+        val xCountInCommonCol = if (cellA.col != cellB.col) 999 else columns[cellA.col].count { cell ->
+            cell.value == 0 && (cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true)
         }
         val xCountInCommonBox = if (
-                getBoxNumber(cellA.row, cellA.col) != getBoxNumber(cellB.row, cellB.col)
-            ) 999 else boxes[getBoxNumber(cellA.row, cellA.col)].count{cell ->
-            cell.value == 0 && notes.any{note ->
-                note.row == cell.row && note.col == cell.col && note.value == num
-            }
+                getBoxIndex(cellA.row, cellA.col) != getBoxIndex(cellB.row, cellB.col)
+            ) 999 else boxes[getBoxIndex(cellA.row, cellA.col)].count { cell ->
+            cell.value == 0 && (cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true)
         }
         val xCountInGroup = intArrayOf(xCountInCommonRow, xCountInCommonCol, xCountInCommonBox).min()
         if (xCountInGroup == 999) throw IllegalStateException("not in group")
@@ -1601,7 +1602,7 @@ class AdvancedHint(
                     val commonVisible = getCommonVisibleCells(start, end)
                         .filter { it.value == 0 } // 仅考虑空单元格
                         .filter { it !in newPath }
-                        .filter { cell -> notes.any { note -> note.row == cell.row && note.col == cell.col && note.value == num }}
+                        .filter { cell -> cellNotesCache[Pair(cell.row, cell.col)]?.contains(num) == true }
 
                     if (commonVisible.isNotEmpty()) {
                         // 收集可移除的候选数
@@ -1689,12 +1690,12 @@ class AdvancedHint(
         for (i in biValueCells.indices) {
             val a = biValueCells[i]
             val notesA = cellNotes[a]!!
-            val boxA = getBoxNumber(a.row, a.col)
+            val boxA = getBoxIndex(a.row, a.col)
 
             for (j in i + 1 until biValueCells.size) {
                 val b = biValueCells[j]
                 val notesB = cellNotes[b]!!
-                val boxB = getBoxNumber(b.row, b.col)
+                val boxB = getBoxIndex(b.row, b.col)
 
                 // 检查同区（行/列/宫）及其共享的候选数
                 if (isSameRegion(a, b, boxA, boxB) && notesA.intersect(notesB).isNotEmpty()) {
@@ -1775,24 +1776,6 @@ class AdvancedHint(
         return null
     }
 
-    /** 校验路径中所有中间节点的候选数传递性 */
-//    private fun isValidMiddleNodes(
-//        path: List<Pair<Cell, Int>>,
-//        cellNotes: Map<Cell, Set<Int>>
-//    ): Boolean {
-//        // 中间节点是路径中除首尾外的所有节点（索引1到size-2）
-//        for (i in 1 until path.size - 1) {
-//            val preNodePair = path[i - 1]
-//            val middleNodePair = path[i]
-//            val middleNotes = cellNotes[middleNodePair.first]!!
-//
-//            // 中间节点必须恰好包含前、后共享数
-//            if (middleNotes != setOf(preNodePair.second, middleNodePair.second)) {
-//                return false
-//            }
-//        }
-//        return true
-//    }
 
     /** 校验两端节点是否符合条件，返回(是否有效, 要排除的候选数X) */
     private fun checkEndNodes(
@@ -1827,7 +1810,7 @@ class AdvancedHint(
             // 按行、列、宫分组
             val rowsWithX = cellsWithX.groupBy { it.row }.filter { it.value.size >= 2 }
             val colsWithX = cellsWithX.groupBy { it.col }.filter { it.value.size >= 2 }
-            val boxesWithX = cellsWithX.groupBy { getBoxNumber(it.row, it.col) }.filter { it.value.size >= 2 }
+            val boxesWithX = cellsWithX.groupBy { getBoxIndex(it.row, it.col) }.filter { it.value.size >= 2 }
             // 加起来并去重
             val groups = (mutableListOf<List<Cell>>()
                 + rowsWithX.values
@@ -2111,7 +2094,7 @@ class AdvancedHint(
     private fun areInSameGroup(cell1: Cell, cell2: Cell): Boolean {
         if (cell1.row == cell2.row) return true // 同一行
         if (cell1.col == cell2.col) return true // 同一列
-        if (getBoxNumber(cell1.row, cell1.col) == getBoxNumber(cell2.row, cell2.col)) return true // 同一宫
+        if (getBoxIndex(cell1.row, cell1.col) == getBoxIndex(cell2.row, cell2.col)) return true // 同一宫
         return false
     }
 
@@ -2129,9 +2112,9 @@ class AdvancedHint(
             val otherCells = colCells.filter { it != cell1 && it != cell2 && it.value == 0 }
             if (otherCells.none { getCellNotes(it).contains(x) }) return true
         }
-        if (getBoxNumber(cell1.row, cell1.col) == getBoxNumber(cell2.row, cell2.col)) {
+        if (getBoxIndex(cell1.row, cell1.col) == getBoxIndex(cell2.row, cell2.col)) {
             // 同一宫
-            val boxCells = boxes[getBoxNumber(cell1.row, cell1.col)]
+            val boxCells = boxes[getBoxIndex(cell1.row, cell1.col)]
             val otherCells = boxCells.filter { it != cell1 && it != cell2 && it.value == 0 }
             if (otherCells.none { getCellNotes(it).contains(x) }) return true
         }
@@ -2158,13 +2141,8 @@ class AdvancedHint(
     }
 
     // 辅助方法：获取一个单元格的所有可见单元格（同一行、列和宫）
-    private fun getVisibleCells(cell: Cell): List<Cell> {
-        val sameRow = rows[cell.row]
-        val sameCol = columns[cell.col]
-        val sameBox = boxes[getBoxNumber(cell.row, cell.col)]
-
-        return (sameRow + sameCol + sameBox).distinct()
-    }
+    private fun getVisibleCells(cell: Cell): List<Cell> =
+        visibleCellsCache[Pair(cell.row, cell.col)] ?: emptyList()
 
     /**
      * 检查鱼模式（Swordfish和Jellyfish）
@@ -2358,7 +2336,7 @@ class AdvancedHint(
                 for (row in rows.indices) {
                     if (row !in baseRows) {
                         val cell = board[row][col]
-                        notes.find { it.row == row && it.col == col && it.value == num }?.let { note ->
+                        cellNoteIndex[Triple(row, col, num)]?.let { note ->
                             notesToRemove.add(note)
                             affectedCells.add(cell)
                         }
@@ -2371,7 +2349,7 @@ class AdvancedHint(
                 for (col in columns.indices) {
                     if (col !in baseCols) {
                         val cell = board[row][col]
-                        notes.find { it.row == row && it.col == col && it.value == num }?.let { note ->
+                        cellNoteIndex[Triple(row, col, num)]?.let { note ->
                             notesToRemove.add(note)
                             affectedCells.add(cell)
                         }
@@ -2477,20 +2455,11 @@ class AdvancedHint(
             // 首先，根据方向收集候选行/列及其候选位置
             val cellGroups = cellsWithNoteNum.groupBy { if (isRowBased) it.row else it.col }
             if (cellGroups.size < size) continue
-//            // 滤除掉候选位置数介于2到size的行/列，作为鱼身的基本位置
-//            val fishGroupsCandidates = cellGroups.filter { it.value.size in 2..size }
-//            if (fishGroupsCandidates.isEmpty()) continue
             // 鳍的最大数量限制：一行/列最多有宫的宽度/长度-1的鳍加一个鱼的部分
             val maxFinsInGroup = (if (isRowBased) type.sectionWidth else type.sectionHeight) - 1
             val finGroupsCandidates = cellGroups.filter { it.value.size in 2..size + maxFinsInGroup }
             if (finGroupsCandidates.size < size) continue
             for (fishCandidates in finGroupsCandidates.keys.toList().combinations(size)) {
-                // fishCandidates的总格数必须在2*size到size*size+(size-1)*maxFinsInGroup之间
-//                var totalCellsCount = 0
-//                fishCandidates.forEach { group ->
-//                    totalCellsCount += finGroupsCandidates[group]!!.size
-//                }
-//                if (totalCellsCount !in (2 * size)..(size * size + (size - 1) * maxFinsInGroup)) continue
                 // 取出鱼在列/行的并集
                 val allPositions = mutableMapOf<Int, MutableList<Cell>>()
                 fishCandidates.forEach { group ->
@@ -2515,7 +2484,7 @@ class AdvancedHint(
                     if (finPositions.isEmpty() || baseFishPositions.isEmpty()) throw IllegalStateException("Fin groups or base fish positions cannot be empty")
 
                     // 如果鳍不在同一宫，则跳过该组合
-                    val finBoxes = finPositions.map { getBoxNumber(it.row, it.col) }.toSet()
+                    val finBoxes = finPositions.map { getBoxIndex(it.row, it.col) }.toSet()
                     if (finBoxes.size != 1) continue
                     // 计算鱼鳍所在的行/列包含鱼身cell的最少数量
                     val finGroupKeys = finPositions.map { if (isRowBased) it.row else it.col }.toSet()
@@ -2526,15 +2495,6 @@ class AdvancedHint(
                     } ?: 0
                     // 至少为1
                     if (minBaseFishInFinGroups < 1) continue
-                    // 除了鱼鳍所在的行与列外，剩余的鱼身中，行与列均至少有两个鱼身
-//                    val remainBaseFish = baseFishPositions.filter { cell ->
-//                        !finPositions.any{ finCell ->
-//                            cell.row == finCell.row || cell.col == finCell.col
-//                        }
-//                    }
-//                    val remainBaseFishRowCount = remainBaseFish.groupBy { it.row }.map { it.value.size }
-//                    val remainBaseFishColCount = remainBaseFish.groupBy { it.col }.map { it.value.size }
-//                    if (remainBaseFishRowCount.any { it < 2 } || remainBaseFishColCount.any { it < 2 }) continue
                     // 如果minBaseFishInFinGroups为2或更多，则判断是否成立标准带鳍鱼
                     if (minBaseFishInFinGroups >= 2) {
                         // 成立条件：鱼身部分所在的列/行均必须有至少两个鱼身
@@ -2595,58 +2555,6 @@ class AdvancedHint(
     }
 
     /**
-     * 收集带鳍鱼的候选行/列及其候选位置
-     */
-//    private fun collectFinnedFishCandidates(num: Int, isRowBased: Boolean): Map<Int, Set<Int>> {
-//        return mutableMapOf<Int, Set<Int>>().apply {
-//            if (isRowBased) {
-//                // 行基：收集行及其包含数字num的候选列
-//                for (row in rows.indices) {
-//                    val cols = getColumnsWithNoteInRow(row, num)
-//                    if (cols.isNotEmpty()) put(row, cols)
-//                }
-//            } else {
-//                // 列基：收集列及其包含数字num的候选行
-//                for (col in columns.indices) {
-//                    val rows = getRowsWithNoteInColumn(col, num)
-//                    if (rows.isNotEmpty()) put(col, rows)
-//                }
-//            }
-//        }
-//    }
-
-    /**
-     * 分析带鳍鱼组合，提取基本位置和鳍
-     */
-    //https://zhuanlan.zhihu.com/p/572020957
-//    private fun analyzeFinnedFishCombination(
-//        combination: List<Int>,
-//        candidates: Map<Int, Set<Int>>,
-//        isRowBased: Boolean
-//    ): Pair<List<Int>, List<Cell>> {
-//        // 收集所有位置的交集作为基本位置
-////        val allPositions = combination
-////            .map { key -> candidates[key] ?: emptySet() }
-////            .reduce { acc, set -> acc.intersect(set) }
-////            .toList()
-//        //
-//
-//        // 识别鳍（不在基本位置中的候选）
-//        val fins = mutableListOf<Cell>()
-//        for (key in combination) {
-//            val positions = candidates[key] ?: emptySet()
-//            val finPositions = positions - allPositions.toSet()
-//
-//            finPositions.forEach { pos ->
-//                val cell = if (isRowBased) board[key][pos] else board[pos][key]
-//                fins.add(cell)
-//            }
-//        }
-//
-//        return Pair(allPositions, fins)
-//    }
-
-    /**
      * 找到带鳍鱼中可移除的候选数
      */
     private fun findRemovableNotesInFinnedFish(
@@ -2658,33 +2566,25 @@ class AdvancedHint(
     ): Pair<List<Note>, List<Cell>> {
         val notesToRemove = mutableListOf<Note>()
         val affectedCells = mutableListOf<Cell>()
-        // 鳍所在的宫
-        //val finBoxes = fins.map { getBoxNumber(it.row, it.col) }.toSet()
         // 由于前面已经确保所有鳍在同一宫，这里直接取第一个鳍的宫
-        val finBox = fins[0].let { getBoxNumber(it.row, it.col) }
+        val finBox = fins[0].let { getBoxIndex(it.row, it.col) }
 
         if (isRowBased) {
             // 行基带鳍鱼：排除鳍所在宫与基本列的交叉
             for (col in basePositions) {
                 for (row in rows.indices) {
-                    if (row !in baseKeys && getBoxNumber(row, col) == finBox) {
+                    if (row !in baseKeys && getBoxIndex(row, col) == finBox) {
                         addRemovableNote(num, row, col, notesToRemove, affectedCells)
                     }
-//                    if (row !in baseKeys && getBoxNumber(row, col) in finBoxes) {
-//                        addRemovableNote(num, row, col, notesToRemove, affectedCells)
-//                    }
                 }
             }
         } else {
             // 列基带鳍鱼：排除鳍所在宫与基本行的交叉
             for (row in basePositions) {
                 for (col in columns.indices) {
-                    if (col !in baseKeys && getBoxNumber(row, col) == finBox) {
+                    if (col !in baseKeys && getBoxIndex(row, col) == finBox) {
                         addRemovableNote(num, row, col, notesToRemove, affectedCells)
                     }
-//                    if (col !in baseKeys && getBoxNumber(row, col) in finBoxes) {
-//                        addRemovableNote(num, row, col, notesToRemove, affectedCells)
-//                    }
                 }
             }
         }
@@ -2814,7 +2714,7 @@ class AdvancedHint(
         notesToRemove: MutableList<Note>,
         affectedCells: MutableList<Cell>
     ) {
-        notes.find { it.row == row && it.col == col && it.value == num }?.let { note ->
+        cellNoteIndex[Triple(row, col, num)]?.let { note ->
             notesToRemove.add(note)
             affectedCells.add(board[row][col])
         }
@@ -2826,11 +2726,7 @@ class AdvancedHint(
      */
     private fun getColumnsWithNoteInRow(row: Int, number: Int): Set<Int> {
         return rows[row]
-            .filter { cell ->
-                notes.any { note ->
-                    note.row == row && note.col == cell.col && note.value == number
-                }
-            }
+            .filter { cell -> cellNotesCache[Pair(row, cell.col)]?.contains(number) == true }
             .map { it.col }
             .toSet()
     }
@@ -2840,11 +2736,7 @@ class AdvancedHint(
      */
     private fun getRowsWithNoteInColumn(col: Int, number: Int): Set<Int> {
         return columns[col]
-            .filter { cell ->
-                notes.any { note ->
-                    note.row == cell.row && note.col == col && note.value == number
-                }
-            }
+            .filter { cell -> cellNotesCache[Pair(cell.row, col)]?.contains(number) == true }
             .map { it.row }
             .toSet()
     }
@@ -2855,23 +2747,21 @@ class AdvancedHint(
     }
 
     private fun getColumns(): List<List<Cell>> {
-        val transposedBoard =
-            MutableList(type.size) { row -> MutableList(type.size) { col -> Cell(row, col, 0) } }
-
+        val cols = MutableList(type.size) { mutableListOf<Cell>() }
         for (i in 0 until type.size) {
             for (j in 0 until type.size) {
-                transposedBoard[j][i] = board[i][j]
+                cols[j].add(board[i][j])
             }
         }
-        return transposedBoard.toList()
+        return cols.map { it.toList() }
     }
 
-    private fun getBoxNumber(row: Int, col: Int): Int {
-        val sectionRow = row / type.sectionHeight
-        val sectionColumn = col / type.sectionWidth
-        val sectorsPerRow = type.size / type.sectionWidth
-        return sectionRow * sectorsPerRow + sectionColumn
-    }
+//    private fun getBoxNumber(row: Int, col: Int): Int {
+//        val sectionRow = row / type.sectionHeight
+//        val sectionColumn = col / type.sectionWidth
+//        val sectorsPerRow = type.size / type.sectionWidth
+//        return sectionRow * sectorsPerRow + sectionColumn
+//    }
 
     private fun getBoxes(): List<List<Cell>> {
         val size = type.size
@@ -2881,7 +2771,7 @@ class AdvancedHint(
         val boxes = MutableList(sectionWidth * sectionHeight) { mutableListOf<Cell>() }
         for (i in 0 until size) {
             for (j in 0 until size) {
-                val boxNumber = getBoxNumber(i, j)
+                val boxNumber = getBoxIndex(i, j)
                 boxes[boxNumber].add(board[i][j])
             }
         }
