@@ -33,6 +33,7 @@ import com.kaajjo.libresudoku.R
 import com.kaajjo.libresudoku.core.Cell
 import com.kaajjo.libresudoku.core.PreferencesConstants
 import com.kaajjo.libresudoku.core.qqwing.GameType
+import com.kaajjo.libresudoku.core.qqwing.advanced_hint.AdvancedHintData
 import com.kaajjo.libresudoku.core.utils.SudokuParser
 import com.kaajjo.libresudoku.destinations.SettingsAdvancedHintScreenDestination
 import com.kaajjo.libresudoku.ui.components.board.Board
@@ -40,6 +41,11 @@ import com.kaajjo.libresudoku.ui.game.components.*
 import com.kaajjo.libresudoku.destinations.SettingsCategoriesScreenDestination
 import com.kaajjo.libresudoku.ui.util.ReverseArrangement
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.material.icons.rounded.PlayCircle
+import android.os.Build
 
 /**
  * 顶部操作栏组件
