@@ -409,6 +409,10 @@
     <string name="hint_xyz_wing_detail">XYZ-Wing formed with %1$s,%2$s,%3$s in cells %5$s(XZ), %4$s(XYZ), %6$s(YZ), so %3$s can be removed from cells %7$s.</string>
     <string name="hint_w_wing_title">W-Wing</string>
     <string name="hint_w_wing_detail">W-Wing formed with wings(%1$s,%2$s) %4$s and pivots(%1$s+) %3$s, so %2$s can be removed from cells %5$s.</string>
+    <string name="hint_aic_type1_title">AIC Type 1</string>
+    <string name="hint_aic_type1_detail">Alternating Inference Chain Type 1: Chain starts and ends on strong links for digit %1$s (at %2$s and %4$s). Chain path: %5$s. This proves %1$s must be in one of the end cells, so %6$s can be removed from cells %7$s that see both ends.</string>
+    <string name="hint_aic_type2_title">AIC Type 2</string>
+    <string name="hint_aic_type2_detail">Alternating Inference Chain Type 2: Chain starts and ends on strong links for digits %1$s at %2$s and %3$s at %4$s (mutually visible cells). Chain path: %5$s. This proves digit %3$s can\'t be in cell %2$s and digit %1$s can\'t be in cell %4$s, so %6$s can be removed from cells %7$s.</string>
     <string name="hint_fish_patterns_title">Fish</string>
     <string name="hint_swordfish_title">Swordfish</string>
     <string name="hint_swordfish_row_detail">Number %1$s forms a Swordfish in rows %2$s, appearing only in columns %3$s, so %1$s can be removed from cells %4$s.</string>

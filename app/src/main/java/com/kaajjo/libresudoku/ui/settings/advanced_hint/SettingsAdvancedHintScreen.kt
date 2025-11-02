@@ -291,6 +291,32 @@ fun SettingsAdvancedHintScreen(
                 )
             }
             item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_aic_type1_title),
+                    checked = advancedHintSettings.aicType1,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                aicType1 = !advancedHintSettings.aicType1
+                            )
+                        )
+                    }
+                )
+            }
+            item {
+                TechniqueItem(
+                    title = stringResource(R.string.hint_aic_type2_title),
+                    checked = advancedHintSettings.aicType2,
+                    onClick = {
+                        viewModel.updateAdvancedHintSettings(
+                            advancedHintSettings.copy(
+                                aicType2 = !advancedHintSettings.aicType2
+                            )
+                        )
+                    }
+                )
+            }
+            item {
                 Column(
                     modifier = Modifier
                         .padding(horizontal = 16.dp, vertical = 8.dp)

@@ -7,9 +7,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.kaajjo.libresudoku.core.qqwing.advanced_hint.Chain
 import com.kaajjo.libresudoku.core.qqwing.advanced_hint.ChainEdgeType
@@ -17,6 +19,19 @@ import com.kaajjo.libresudoku.ui.components.board.getNoteColumnNumber
 import com.kaajjo.libresudoku.ui.components.board.getNoteRowNumber
 import kotlin.math.floor
 import kotlin.math.sqrt
+
+/**
+ * 通过调整色相创建新颜色
+ * @param color 原始颜色
+ * @param hueShift 色相偏移（度数，0-360）
+ * @return 新颜色
+ */
+private fun shiftHue(color: Color, hueShift: Float): Color {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+    hsv[0] = (hsv[0] + hueShift) % 360f
+    return Color(android.graphics.Color.HSVToColor(hsv))
+}
 
 /**
  * 绘制 X-Chain 的可视化覆盖层
@@ -42,6 +57,16 @@ fun ChainOverlay(
     
     val primaryColor = MaterialTheme.colorScheme.primary
     
+    // 根据分组获取颜色
+    val getColorForGroup = { group: Int ->
+        when (group) {
+            0 -> primaryColor
+            1 -> shiftHue(primaryColor, 30f)
+            2 -> shiftHue(primaryColor, -30f)
+            else -> primaryColor
+        }
+    }
+    
     Canvas(modifier = modifier.fillMaxSize()) {
         // 计算笔记位置的辅助函数（与 BoardDrawUtil.drawNotes 中完全一致）
         fun getNotePosition(row: Int, col: Int, value: Int): Offset {
@@ -61,17 +86,16 @@ fun ChainOverlay(
                 else if (noteRow == 1) 0f
                 else if (noteRow == 2 && value > 9) 0f
                 else -(noteTextMeasure / 3f)
-            
-            // 与 BoardDrawUtil 中完全一致的位置计算
+
             val x = col * cellSize + cellSizeDivWidth / 2f + (cellSizeDivWidth * noteRow) + horizontalPadding
             val y = row * cellSize + noteBounds.height() * 1.5f + killerSumBounds.height() + (cellDivHeight * noteCol) - (noteBounds.height() * 0.5f)
             
             return Offset(x, y)
         }
         
-        // 计算圆圈半径（与 BoardDrawUtil 中完全一致）
+        // 计算圆圈半径
         val cellDivHeight = (cellSize - killerSumBounds.height() * 1.5f) / floor(sqrt(boardSize.toFloat()))
-        val radius = minOf(cellSizeDivWidth, cellDivHeight) * 0.55f
+        val radius = minOf(cellSizeDivWidth, cellDivHeight) * 0.5f
         
         // 绘制所有边（连接线）
         chain.edges.forEach { edge ->
@@ -90,6 +114,9 @@ fun ChainOverlay(
                 // 实线
                 null
             }
+            
+            // 使用起点节点的分组颜色
+            val edgeColor = getColorForGroup(edge.from.group)
             
             if (isSameCell) {
                 // 同一个单元格内的两个节点，使用弧线连接
@@ -150,7 +177,7 @@ fun ChainOverlay(
                 
                 drawPath(
                     path = path,
-                    color = primaryColor,
+                    color = edgeColor,
                     style = Stroke(
                         width = strokeWidth,
                         pathEffect = pathEffect
@@ -175,7 +202,7 @@ fun ChainOverlay(
                     val adjustedToY = toPos.y - unitDy * radius
                     
                     drawLine(
-                        color = primaryColor,
+                        color = edgeColor,
                         start = Offset(adjustedFromX, adjustedFromY),
                         end = Offset(adjustedToX, adjustedToY),
                         strokeWidth = strokeWidth,
@@ -189,9 +216,12 @@ fun ChainOverlay(
         chain.nodes.forEach { node ->
             val nodePos = getNotePosition(node.cell.row, node.cell.col, node.value)
             
+            // 根据节点的分组使用不同颜色
+            val nodeColor = getColorForGroup(node.group)
+            
             // 绘制圆圈 - 更细的圆圈边框
             drawCircle(
-                color = primaryColor,
+                color = nodeColor,
                 radius = radius,
                 center = nodePos,
                 style = Stroke(width = 1.5.dp.toPx())

@@ -232,6 +232,9 @@ class GameViewModel @Inject constructor(
     private var _advancedHintData = MutableStateFlow<AdvancedHintData?>(null)
     val advancedHintData = _advancedHintData.asStateFlow()
 
+    private var _isLoadingAdvancedHint = MutableStateFlow(false)
+    val isLoadingAdvancedHint = _isLoadingAdvancedHint.asStateFlow()
+
     private var _cellsToHighlight = MutableStateFlow<List<Cell>>(emptyList())
     val cellsToHighlight = _cellsToHighlight.asStateFlow()
 
@@ -810,6 +813,7 @@ class GameViewModel @Inject constructor(
 
     fun getAdvancedHint() {
         viewModelScope.launch(Dispatchers.Default) {
+            _isLoadingAdvancedHint.emit(true)
             currCell = Cell(-1, -1, 0)
             _advancedHintData.emit(null)
             val hintSettings = runBlocking { appSettingsManager.advancedHintSettings.first() }
@@ -823,6 +827,7 @@ class GameViewModel @Inject constructor(
             val advancedHintData = advancedHint.getEasiestHint()
             _advancedHintData.emit(advancedHintData)
             _advancedHintMode.emit(true)
+            _isLoadingAdvancedHint.emit(false)
         }
     }
 

@@ -223,7 +223,7 @@ fun Board(
         val noteRemoveHighlightPaint by remember {
             mutableStateOf(
                 Paint().apply {
-                    color = errorColor.copy(alpha = 0.3f).toArgb()
+                    color = errorColor.copy(alpha = 0.4f).toArgb()
                     isAntiAlias = true
                 }
             )

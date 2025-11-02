@@ -669,6 +669,7 @@ fun GameToolbarRow(
             viewModel.advancedHintEnabled.collectAsStateWithLifecycle(
                     initialValue = PreferencesConstants.DEFAULT_ADVANCED_HINT
             )
+    val isLoadingAdvancedHint by viewModel.isLoadingAdvancedHint.collectAsStateWithLifecycle(false)
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = modifier) {
         // Undo 按钮
@@ -736,6 +737,7 @@ fun GameToolbarRow(
             ToolbarItem(
                     modifier = Modifier.weight(1f),
                     painter = rememberVectorPainter(Icons.Rounded.AutoAwesome),
+                    isLoading = isLoadingAdvancedHint,
                     onClick = {
                         if (viewModel.gamePlaying) {
                             viewModel.getAdvancedHint()

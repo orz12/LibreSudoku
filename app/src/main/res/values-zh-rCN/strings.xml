@@ -437,9 +437,13 @@
     <string name="hint_xy_chain_title">XY链</string>
     <string name="hint_xy_chain_detail">路径%2$s中的数%3$s构成了一条XY链，所以链两端共同可见的%4$s中数字%1$s可以删除.</string>
     <string name="hint_xyz_wing_title">XYZ翼（XYZ-Wing）</string>
-    <string name="hint_xyz_wing_detail">在%5$s(XZ), %4$s(XYZ), %6$s(YZ)格中，数字%1$s,%2$s,%3$s构成了XYZ翼，所以%7$s中的%2$s可以删除</string>
+    <string name="hint_xyz_wing_detail">在%5$s(XZ), %4$s(XYZ), %6$s(YZ)格中，数字%1$s,%2$s,%3$s构成了XYZ翼，所以%7$s中的%3$s可以删除</string>
     <string name="hint_w_wing_title">W翼（W-Wing）</string>
     <string name="hint_w_wing_detail">数字%1$s和%2$s构成了W翼，其中%4$s为翼（XY），%3$s为枢纽（含X），翼的共同可见格%5$s中的%2$s可以删除</string>
+    <string name="hint_aic_type1_title">交替推理链-类型1</string>
+    <string name="hint_aic_type1_detail">AIC Type 1：链的两端为%2$s(%1$s)和%4$s(%3$s)，表示为%5$s。即%1$s必须在链的某一端，可以删除两端共同可见格%7$s中的%6$s。</string>
+    <string name="hint_aic_type2_title">交替推理链-类型2</string>
+    <string name="hint_aic_type2_detail">AIC Type 2：链的两端为%2$s(%1$s)和%4$s(%3$s)，表示为%5$s。即%2$s非%3$s，%4$s非%1$s，可以删除%7$s中的%6$s。</string>
     <string name="hint_swordfish_title">剑鱼</string>
     <string name="hint_swordfish_col_detail">在列%2$s中，数字%1$s仅出现在了行%3$s，构成了剑鱼（三阶鱼），所以%4$s中的数字%1$s可以删除</string>
     <string name="hint_swordfish_row_detail">在行%2$s中，数字%1$s仅出现在了列%3$s，构成了剑鱼（三阶鱼），所以%4$s中的数字%1$s可以删除</string>

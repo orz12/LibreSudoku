@@ -4,10 +4,12 @@ import com.kaajjo.libresudoku.core.Cell
 
 /**
  * 链节点：表示一个单元格中的特定候选数
+ * @param group 节点所属的分组（可选），用于在 Sue de Coq 等技巧中使用不同颜色显示不同组
  */
 data class ChainNode(
     val cell: Cell,
-    val value: Int
+    val value: Int,
+    val group: Int = 0  // 默认为 0，表示不分组或主要组
 )
 
 /**

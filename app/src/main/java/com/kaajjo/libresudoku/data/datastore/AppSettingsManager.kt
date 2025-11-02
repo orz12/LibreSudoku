@@ -117,6 +117,8 @@ class AppSettingsManager(context: Context) {
     private val ahFinnedFishVariants = booleanPreferencesKey("ah_finned_fish_variants")
     private val ahXChain = booleanPreferencesKey("ah_x_chain")
     private val ahXYChain = booleanPreferencesKey("ah_xy_chain")
+    private val ahAICType1 = booleanPreferencesKey("ah_aic_type1")
+    private val ahAICType2 = booleanPreferencesKey("ah_aic_type2")
 
     private val autoUpdateChannelKey = intPreferencesKey("auto_update")
     private val updateDismissedNameKey = stringPreferencesKey("update_dismissed_name") // name of the update that was dismissed
@@ -433,6 +435,8 @@ class AppSettingsManager(context: Context) {
         val finnedFishVariants = settings[ahFinnedFishVariants] ?: true
         val xChain = settings[ahXChain] ?: true
         val xyChain = settings[ahXYChain] ?: true
+        val aicType1 = settings[ahAICType1] ?: true
+        val aicType2 = settings[ahAICType2] ?: true
 
         AdvancedHintSettings(
             fullHouse = fullHouse,
@@ -452,6 +456,8 @@ class AppSettingsManager(context: Context) {
             finnedFishVariants = finnedFishVariants,
             xChain = xChain,
             xyChain = xyChain,
+            aicType1 = aicType1,
+            aicType2 = aicType2,
         )
     }
 
@@ -474,6 +480,8 @@ class AppSettingsManager(context: Context) {
             settings[ahFinnedFishVariants] = ahSettings.finnedFishVariants
             settings[ahXChain] = ahSettings.xChain
             settings[ahXYChain] = ahSettings.xyChain
+            settings[ahAICType1] = ahSettings.aicType1
+            settings[ahAICType2] = ahSettings.aicType2
         }
     }
 

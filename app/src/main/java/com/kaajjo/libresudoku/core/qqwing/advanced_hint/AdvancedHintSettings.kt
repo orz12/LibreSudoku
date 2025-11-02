@@ -23,4 +23,6 @@ data class AdvancedHintSettings(
     val finnedFishVariants: Boolean = true,
     val xChain: Boolean = true,
     val xyChain: Boolean = true,
+    val aicType1: Boolean = true,
+    val aicType2: Boolean = true,
 )

@@ -109,6 +109,9 @@ class AdvancedHint(
         if (settings.finnedFishVariants) checkForFinnedFishVariants()?.let { return it }
         if (settings.xChain) checkForXChain()?.let {return it}
         if (settings.xyChain) checkForXYChain()?.let { return it }
+        if (settings.aicType1 || settings.aicType2) {
+            checkForAIC(settings.aicType1, settings.aicType2)?.let { return it }
+        }
         return hint
     }
 
@@ -516,6 +519,8 @@ class AdvancedHint(
             else R.string.hint_locked_candidates_claiming_col_detail
         val rowHint = if (isPointing) R.string.hint_locked_candidates_pointing_row_detail
             else R.string.hint_locked_candidates_claiming_row_detail
+        val chainNodes = sourceCells.map { ChainNode(it, number) }
+        val chain = Chain(nodes = chainNodes, edges = emptyList())
 
         return AdvancedHintData(
             titleRes = titleRes,
@@ -528,7 +533,8 @@ class AdvancedHint(
                 notes.filter { note ->
                     note.row == cell.row && note.col == cell.col && note.value == number
                 }
-            }
+            },
+            chain = chain
         )
     }
 
@@ -741,15 +747,15 @@ class AdvancedHint(
 //            else -> 0
 //        }
 
-        val numbersStr = subsetData.numbers.joinToString(", ")
-        val cellsStr = subsetData.cells.joinToString(", ") { cellStringFormat(it) }
+        val numbersStr = subsetData.numbers.joinToString(",\u200B")
+        val cellsStr = subsetData.cells.joinToString(",\u200B") { cellStringFormat(it) }
         val affectedCells = subsetData.notesToRemove
             .map { note -> Cell(note.row, note.col, 0) }
             .distinct()
         val detailArgs = listOf(
             cellsStr,
             numbersStr,
-            affectedCells.joinToString(", ") { cellStringFormat(it) }
+            affectedCells.joinToString(",\u200B") { cellStringFormat(it) }
         )
         // 借用chain提示圈出subsetData.cells中subsetData.numbers的候选数
         val helpNotes = subsetData.cells.flatMap { cell ->
@@ -1036,14 +1042,14 @@ class AdvancedHint(
         val titleRes = R.string.hint_sue_de_coq_title
 
         // 格式化单元格信息
-        val intersectionStr = intersectionCells.joinToString(", ") { cellStringFormat(it) }
-        val cbStr = cbCells.joinToString(", ") { cellStringFormat(it) }
-        val crStr = crCells.joinToString(", ") { cellStringFormat(it) }
+        val intersectionStr = intersectionCells.joinToString(",\u200B") { cellStringFormat(it) }
+        val cbStr = cbCells.joinToString(",\u200B") { cellStringFormat(it) }
+        val crStr = crCells.joinToString(",\u200B") { cellStringFormat(it) }
         
         // 格式化候选数信息
-        val vStr = intersectionNotes.sorted().joinToString(",")
-        val vbStr = vb.sorted().joinToString(",")
-        val vrStr = vr.sorted().joinToString(",")
+        val vStr = intersectionNotes.sorted().joinToString(",\u200B")
+        val vbStr = vb.sorted().joinToString(",\u200B")
+        val vrStr = vr.sorted().joinToString(",\u200B")
         
         // 计算 VB ∩ V 和 VR ∩ V（来自 V 的部分）
         val vbFromV = vb.intersect(intersectionNotes)
@@ -1053,9 +1059,9 @@ class AdvancedHint(
         val cellNotesMap = notesToRemove.groupBy { Pair(it.row, it.col) }
         val removalsStr = cellNotesMap.entries
             .sortedBy { (key, _) -> key.first * 100 + key.second }
-            .joinToString(",") { (key, notes) ->
+            .joinToString(",\u200B") { (key, notes) ->
                 val cell = board[key.first][key.second]
-                val notesStr = notes.map { it.value }.sorted().joinToString(",")
+                val notesStr = notes.map { it.value }.sorted().joinToString(",\u200B")
                 "${cellStringFormat(cell)}($notesStr)"
             }
         
@@ -1065,53 +1071,73 @@ class AdvancedHint(
         val deleteInBox = vb.union(intersectionNotes - vrFromV)
         val deleteInLine = vr.union(intersectionNotes - vbFromV)
 
-        val (detailRes, detailArgs) = if (isRowBased) {
-            Pair(
-                R.string.hint_sue_de_coq_box_row_detail,
-                listOf(
-                    (boxNum + 1).toString(),           // %1 宫号
-                    (lineNum + 1).toString(),          // %2 行号
-                    intersectionStr,                    // %3 交集单元格
-                    vStr,                              // %4 V 集合
-                    cbStr,                             // %5 CB 单元格
-                    vbStr,                             // %6 VB 集合
-                    crStr,                             // %7 CR 单元格
-                    vrStr,                             // %8 VR 集合
-                    vbFromV.sorted().joinToString(","),// %9 VB 中来自 V 的部分
-                    vrFromV.sorted().joinToString(","),// %10 VR 中来自 V 的部分
-                    deleteInBox.sorted().joinToString(","), // %11 宫中删除的部分
-                    deleteInLine.sorted().joinToString(","), // %12 行/列中删除的部分
-                    removalsStr                        // %13 删除信息（带括号格式）
-                )
+        val (detailRes, detailArgs) = Pair(
+            if (isRowBased) R.string.hint_sue_de_coq_box_row_detail
+            else R.string.hint_sue_de_coq_box_col_detail,
+            listOf(
+                (boxNum + 1).toString(),           // %1 宫号
+                (lineNum + 1).toString(),          // %2 行号
+                intersectionStr,                    // %3 交集单元格
+                vStr,                              // %4 V 集合
+                cbStr,                             // %5 CB 单元格
+                vbStr,                             // %6 VB 集合
+                crStr,                             // %7 CR 单元格
+                vrStr,                             // %8 VR 集合
+                vbFromV.sorted().joinToString(",\u200B"),// %9 VB 中来自 V 的部分
+                vrFromV.sorted().joinToString(",\u200B"),// %10 VR 中来自 V 的部分
+                deleteInBox.sorted().joinToString(",\u200B"), // %11 宫中删除的部分
+                deleteInLine.sorted().joinToString(",\u200B"), // %12 行/列中删除的部分
+                removalsStr                        // %13 删除信息（带括号格式）
             )
-        } else {
-            Pair(
-                R.string.hint_sue_de_coq_box_col_detail,
-                listOf(
-                    (boxNum + 1).toString(),           // %1 宫号
-                    (lineNum + 1).toString(),          // %2 列号
-                    intersectionStr,                    // %3 交集单元格
-                    vStr,                              // %4 V 集合
-                    cbStr,                             // %5 CB 单元格
-                    vbStr,                             // %6 VB 集合
-                    crStr,                             // %7 CR 单元格
-                    vrStr,                             // %8 VR 集合
-                    vbFromV.sorted().joinToString(","),// %9 VB 中来自 V 的部分
-                    vrFromV.sorted().joinToString(","),// %10 VR 中来自 V 的部分
-                    deleteInBox.sorted().joinToString(","), // %11 宫中删除的部分
-                    deleteInLine.sorted().joinToString(","), // %12 行/列中删除的部分
-                    removalsStr                        // %13 删除信息（带括号格式）
-                )
-            )
-        }
+        )
 
         val helpCells = (intersectionCells + cbCells + crCells).distinct()
+
+        // 创建 Chain 以在棋盘上用不同颜色圈出候选数
+        val chainNodes = mutableListOf<ChainNode>()
+
+        // 将intersectionCells和cbCells中值包含在vb中的notes作为Group 0
+        intersectionCells.forEach { cell ->
+            vb.forEach { value ->
+                if (getCellNotes(cell).contains(value)) {
+                    chainNodes.add(ChainNode(cell, value, group = 1))
+                }
+            }
+        }
+        cbCells.forEach { cell ->
+            vb.forEach { value ->
+                if (getCellNotes(cell).contains(value)) {
+                    chainNodes.add(ChainNode(cell, value, group = 1))
+                }
+            }
+        }
+        
+        // 将intersectionCells和crCells中值包含在vr中的notes作为Group 1
+        intersectionCells.forEach { cell ->
+            vr.forEach { value ->
+                if (getCellNotes(cell).contains(value)) {
+                    chainNodes.add(ChainNode(cell, value, group = 2))
+                }
+            }
+        }
+
+        crCells.forEach { cell ->
+            vr.forEach { value ->
+                if (getCellNotes(cell).contains(value)) {
+                    chainNodes.add(ChainNode(cell, value, group = 2))
+                }
+            }
+        }
+        
+        val chain = Chain(nodes = chainNodes, edges = emptyList())
 
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
-            helpCells = helpCells.filter { !affectedCells.contains(it) } + intersectionCells,
-            notesToRemove = notesToRemove
+            helpCells = emptyList(),
+            // helpCells = helpCells.filter { !affectedCells.contains(it) },
+            notesToRemove = notesToRemove,
+            chain = chain
         )
     }
 
@@ -1308,9 +1334,9 @@ class AdvancedHint(
         affectedCells: List<Cell>
     ): AdvancedHintData {
         // 格式化行号和列号（转换为1-based索引）
-        val formattedRows = baseRows.map { it + 1 }.joinToString(", ")
-        val formattedCols = baseCols.map { it + 1 }.joinToString(", ")
-        val affectedCellsStr = affectedCells.joinToString(", ") { cellStringFormat(it) }
+        val formattedRows = baseRows.map { it + 1 }.joinToString(",\u200B")
+        val formattedCols = baseCols.map { it + 1 }.joinToString(",\u200B")
+        val affectedCellsStr = affectedCells.joinToString(",\u200B") { cellStringFormat(it) }
 
         val (titleRes, detailRes, detailArgs) = if (isRowBased) {
             // 行基X-Wing
@@ -1340,12 +1366,15 @@ class AdvancedHint(
         val helperCells = baseRows.flatMap { row ->
             baseCols.map { col -> board[row][col] }
         } + baseRows.flatMap { row -> rows[row] } + baseCols.flatMap { col -> columns[col] }
-
+        val chainNodes = helperCells.distinct().filter { cell -> cell.value == 0 && cellNotesCache[Pair(cell.row, cell.col)]!!.contains(number) }
+            .map { ChainNode(it, number) }
+        val chain = Chain(nodes = chainNodes, edges = emptyList())
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
             helpCells = helperCells.filter { !affectedCells.contains(it) },
-            notesToRemove = notesToRemove
+            notesToRemove = notesToRemove,
+            chain = chain
         )
     }
 
@@ -1685,11 +1714,11 @@ class AdvancedHint(
             val cellStr = cellStringFormat(element)
             when {
                 index == 0 -> cellStr
-                index % 2 == 1 -> "$acc=$cellStr"
-                else -> "$acc-$cellStr"
+                index % 2 == 1 -> "$acc\u200B=\u200B$cellStr"
+                else -> "$acc\u200B-\u200B$cellStr"
             }
         }
-        val affectedCellsStr = affectedCells.joinToString (",") { cellStringFormat (it) }
+        val affectedCellsStr = affectedCells.joinToString (",\u200B") { cellStringFormat (it) }
         val detailArgs = listOf(number.toString(),chainPathStr,affectedCellsStr)
         return AdvancedHintData(
             titleRes = titleRes,
@@ -1863,7 +1892,6 @@ class AdvancedHint(
             
             // 添加当前 path 表示的节点
             nodes.add(ChainNode(cell, value))
-            // 省略同格内的强链
             edges.add(ChainEdge(
                 from = ChainNode(cell, cellNotes[cell]!!.first { it != value }),
                 to = ChainNode(cell, value),
@@ -2000,7 +2028,7 @@ class AdvancedHint(
         val triValueCells = getTriValueCells()
         if (triValueCells.isEmpty()) return null
 
-        // 收集所有有两个候选数的单元格作为潜在翼细胞
+        // 收集所有有两个候选数的单元格作为潜在翼格
         val biValueCells = getBiValueCells()
         if (biValueCells.size < 2) return null
 
@@ -2009,50 +2037,56 @@ class AdvancedHint(
             val xyzNotes = getCellNotes(xyzCell).toList()
             if (xyzNotes.size != 3) continue // 确保是三值单元格
 
-            val x = xyzNotes[0]
-            val y = xyzNotes[1]
-            val z = xyzNotes[2]
+            // 对三值格中的每个候选数分别尝试作为 z（被删除的数）
+            for (z in xyzNotes) {
+                // 其余两个候选数作为 x 和 y
+                val otherNotes = xyzNotes.filter { it != z }
+                if (otherNotes.size != 2) continue
+                
+                val x = otherNotes[0]
+                val y = otherNotes[1]
 
-            // 找到与XYZ在同一单元且包含X和Z的双值单元格（XZ）
-            val xzCells = biValueCells
-                .filter { it != xyzCell && areInSameGroup(xyzCell, it) }
-                .filter { cell -> getCellNotes(cell) == setOf(x, z) }
+                // 找到与XYZ在同一单元且包含X和Z的双值单元格（XZ）
+                val xzCells = biValueCells
+                    .filter { it != xyzCell && areInSameGroup(xyzCell, it) }
+                    .filter { cell -> getCellNotes(cell) == setOf(x, z) }
 
-            // 找到与XYZ在同一单元且包含Y和Z的双值单元格（YZ）
-            val yzCells = biValueCells
-                .filter { it != xyzCell && areInSameGroup(xyzCell, it) }
-                .filter { cell -> getCellNotes(cell) == setOf(y, z) }
+                // 找到与XYZ在同一单元且包含Y和Z的双值单元格（YZ）
+                val yzCells = biValueCells
+                    .filter { it != xyzCell && areInSameGroup(xyzCell, it) }
+                    .filter { cell -> getCellNotes(cell) == setOf(y, z) }
 
-            // 检查XZ和YZ的组合
-            for (xzCell in xzCells) {
-                for (yzCell in yzCells) {
-                    if (xzCell == yzCell) continue
+                // 检查XZ和YZ的组合
+                for (xzCell in xzCells) {
+                    for (yzCell in yzCells) {
+                        if (xzCell == yzCell) continue
 
-                    // 找到三个单元格共同可见的单元格
-                    val commonCells = getCommonVisibleCells(xyzCell, xzCell, yzCell)
-                        .filter { cell -> cell.value == 0 } // 只考虑空单元格
-                        .filter { cell -> getCellNotes(cell).contains(z) }
+                        // 找到三个单元格共同可见的单元格
+                        val commonCells = getCommonVisibleCells(xyzCell, xzCell, yzCell)
+                            .filter { cell -> cell.value == 0 } // 只考虑空单元格
+                            .filter { cell -> getCellNotes(cell).contains(z) }
 
-                    if (commonCells.isNotEmpty()) {
-                        // 收集可移除的候选数
-                        val notesToRemove = commonCells.flatMap { cell ->
-                            notes.filter { note ->
-                                note.row == cell.row && note.col == cell.col && note.value == z
+                        if (commonCells.isNotEmpty()) {
+                            // 收集可移除的候选数
+                            val notesToRemove = commonCells.flatMap { cell ->
+                                notes.filter { note ->
+                                    note.row == cell.row && note.col == cell.col && note.value == z
+                                }
                             }
-                        }
 
-                        if (notesToRemove.isNotEmpty()) {
-                            return createXyOrXyzWingHint(
-                                type = "XYZ",
-                                pivotCell = xyzCell,
-                                wingCells = listOf(xzCell, yzCell),
-                                number = z,
-                                affectedCells = commonCells,
-                                notesToRemove = notesToRemove,
-                                x = x,
-                                y = y,
-                                z = z
-                            )
+                            if (notesToRemove.isNotEmpty()) {
+                                return createXyOrXyzWingHint(
+                                    type = "XYZ",
+                                    pivotCell = xyzCell,
+                                    wingCells = listOf(xzCell, yzCell),
+                                    number = z,
+                                    affectedCells = commonCells,
+                                    notesToRemove = notesToRemove,
+                                    x = x,
+                                    y = y,
+                                    z = z
+                                )
+                            }
                         }
                     }
                 }
@@ -2073,9 +2107,9 @@ class AdvancedHint(
         val titleRes = R.string.hint_w_wing_title
         val detailRes = R.string.hint_w_wing_detail
 
-        val pivotStr = pivotCells.joinToString(", ") { cellStringFormat(it) }
-        val wingStr = wingCells.joinToString(", ") { cellStringFormat(it) }
-        val affectedStr = affectedCells.joinToString(", ") { cellStringFormat(it) }
+        val pivotStr = pivotCells.joinToString(",\u200B") { cellStringFormat(it) }
+        val wingStr = wingCells.joinToString(",\u200B") { cellStringFormat(it) }
+        val affectedStr = affectedCells.joinToString(",\u200B") { cellStringFormat(it) }
         val detailArgs = listOf(
             numberX.toString(), numberY.toString(),
             pivotStr, wingStr, affectedStr
@@ -2130,18 +2164,27 @@ class AdvancedHint(
         val pivotStr = cellStringFormat(pivotCell)
         val wing1Str = cellStringFormat(wingCells[0])
         val wing2Str = cellStringFormat(wingCells[1])
-        val affectedStr = affectedCells.joinToString(", ") { cellStringFormat(it) }
+        val affectedStr = affectedCells.joinToString(",\u200B") { cellStringFormat(it) }
 
         val detailArgs = listOf(
             x.toString(), y.toString(), z.toString(),
             pivotStr, wing1Str, wing2Str, affectedStr
         )
+        var chainNodes = listOf(
+            ChainNode(wingCells[0], number),
+            ChainNode(wingCells[1], number),
+        )
+        if (type == "XYZ") {
+            chainNodes = chainNodes.plus(ChainNode(pivotCell, number))
+        }
+        val chain = Chain(nodes = chainNodes, edges = emptyList())
 
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
-            helpCells = listOf(pivotCell) + wingCells,
-            notesToRemove = notesToRemove
+            helpCells = listOf(pivotCell, pivotCell) + wingCells,
+            notesToRemove = notesToRemove,
+            chain = chain
         )
     }
 
@@ -2156,9 +2199,9 @@ class AdvancedHint(
         val titleRes = R.string.hint_xy_chain_title
         val detailRes = R.string.hint_xy_chain_detail
 
-        val pathStr = path.joinToString("→") { cellStringFormat(it.first) }
-        val affectedStr = affectedCells.joinToString(", ") { cellStringFormat(it) }
-        val numPathStr = numToRemove.toString() + "→" + path.joinToString("→") { it.second.toString() }
+        val pathStr = path.joinToString("\u200B→\u200B") { cellStringFormat(it.first) }
+        val affectedStr = affectedCells.joinToString("\u200B,\u200B") { cellStringFormat(it) }
+        val numPathStr = numToRemove.toString() + "\u200B→\u200B" + path.joinToString("\u200B→\u200B") { it.second.toString() }
         val detailArgs = listOf(
             numToRemove.toString(),
             pathStr,
@@ -2480,9 +2523,9 @@ class AdvancedHint(
         notesToRemove: List<Note>,
         affectedCells: List<Cell>
     ): AdvancedHintData {
-        val formattedRows = baseRows.sorted().map { it + 1 }.joinToString(", ")
-        val formattedCols = baseCols.sorted().map { it + 1 }.joinToString(", ")
-        val affectedCellsStr = affectedCells.joinToString(", ") { cellStringFormat(it) }
+        val formattedRows = baseRows.sorted().map { it + 1 }.joinToString(",\u200B")
+        val formattedCols = baseCols.sorted().map { it + 1 }.joinToString(",\u200B")
+        val affectedCellsStr = affectedCells.joinToString(",\u200B") { cellStringFormat(it) }
 
         val (titleRes, detailRes, detailArgs) = if (isRowBased) {
             Triple(
@@ -2513,12 +2556,17 @@ class AdvancedHint(
             baseCols.map { col -> board[row][col] }
         }.distinct() + baseRows.flatMap { row -> rows[row] } +
                 baseCols.flatMap { col -> columns[col] }
+        // 圈出helpCells中，含有number候选数的单元格
+        val chainNodes = helpCells.distinct().filter { cell -> cell.value == 0 && cellNotesCache[Pair(cell.row, cell.col)]!!.contains(number) }
+            .map { ChainNode(it, number) }
+        val chain = Chain(nodes = chainNodes, edges = emptyList())
 
         return AdvancedHintData(
             titleRes = titleRes,
             textResWithArg = Pair(detailRes, detailArgs),
             helpCells = helpCells.filter { !affectedCells.contains(it) },
-            notesToRemove = notesToRemove
+            notesToRemove = notesToRemove,
+            chain = chain
         )
     }
     /**
@@ -2712,10 +2760,10 @@ class AdvancedHint(
         affectedCells: List<Cell>
     ): AdvancedHintData {
         // 格式化行号/列号（转换为1-based）
-        val baseKeysStr = baseKeys.sorted().map { it + 1 }.joinToString(", ")
-        val basePositionsStr = basePositions.sorted().map { it + 1 }.joinToString(", ")
-        val finsStr = fins.joinToString(", ") { cellStringFormat(it) }
-        val affectedCellsStr = affectedCells.joinToString(", ") { cellStringFormat(it) }
+        val baseKeysStr = baseKeys.sorted().map { it + 1 }.joinToString(",\u200B")
+        val basePositionsStr = basePositions.sorted().map { it + 1 }.joinToString(",\u200B")
+        val finsStr = fins.joinToString(",\u200B") { cellStringFormat(it) }
+        val affectedCellsStr = affectedCells.joinToString(",\u200B") { cellStringFormat(it) }
         val variantName = when (size) {
             2 -> R.string.hint_finned_x_wing_title
             3 -> R.string.hint_finned_swordfish_title
@@ -2731,6 +2779,16 @@ class AdvancedHint(
             3 -> R.string.hint_finned_swordfish_row_detail
             else -> R.string.hint_finned_jellyfish_row_detail
         }
+        val helpCells = baseKeys.flatMap { key ->
+            basePositions.map { pos ->
+                if (isRowBased) board[key][pos] else board[pos][key]
+            }
+        }.distinct()
+        val chainNodes = helpCells.distinct().filter { cell -> cell.value == 0 && cellNotesCache[Pair(cell.row, cell.col)]!!.contains(number) }
+            .map { ChainNode(it, number) }
+            .plus(fins.map { ChainNode(it, number, group = 1) })
+        
+        val chain = Chain(nodes = chainNodes, edges = emptyList())
 
         return AdvancedHintData(
             titleRes = variantName,
@@ -2744,12 +2802,9 @@ class AdvancedHint(
                     affectedCellsStr
                 )
             ),
-            helpCells = baseKeys.flatMap { key ->
-                basePositions.map { pos ->
-                    if (isRowBased) board[key][pos] else board[pos][key]
-                }
-            }.distinct() + fins + fins,
-            notesToRemove = notesToRemove
+            helpCells = helpCells + fins,
+            notesToRemove = notesToRemove,
+            chain = chain
         )
     }
 
@@ -2768,10 +2823,10 @@ class AdvancedHint(
         affectedCells: List<Cell>
     ): AdvancedHintData {
         // 格式化行号/列号（转换为1-based）
-        val baseKeysStr = baseKeys.sorted().map { it + 1 }.joinToString(", ")
-        val basePositionsStr = basePositions.sorted().map { it + 1 }.joinToString(", ")
-        val finsStr = fins.joinToString(", ") { cellStringFormat(it) }
-        val affectedCellsStr = affectedCells.joinToString(", ") { cellStringFormat(it) }
+        val baseKeysStr = baseKeys.sorted().map { it + 1 }.joinToString(",\u200B")
+        val basePositionsStr = basePositions.sorted().map { it + 1 }.joinToString(",\u200B")
+        val finsStr = fins.joinToString(",\u200B") { cellStringFormat(it) }
+        val affectedCellsStr = affectedCells.joinToString(",\u200B") { cellStringFormat(it) }
         val variantName = when (size) {
             2 -> R.string.hint_finned_sashimi_x_wing_title
             3 -> R.string.hint_finned_sashimi_swordfish_title
@@ -2787,7 +2842,15 @@ class AdvancedHint(
             3 -> R.string.hint_finned_sashimi_swordfish_row_detail
             else -> R.string.hint_finned_sashimi_jellyfish_row_detail
         }
-
+        val helpCells = baseKeys.flatMap { key ->
+            basePositions.map { pos ->
+                if (isRowBased) board[key][pos] else board[pos][key]
+            }
+        }.distinct()
+        val chainNodes = helpCells.distinct().filter { cell -> cell.value == 0 && cellNotesCache[Pair(cell.row, cell.col)]!!.contains(number) }
+            .map { ChainNode(it, number) }
+            .plus(fins.map { ChainNode(it, number, group = 1) })
+        val chain = Chain(nodes = chainNodes, edges = emptyList())
         return AdvancedHintData(
             titleRes = variantName,
             textResWithArg = Pair(
@@ -2800,12 +2863,9 @@ class AdvancedHint(
                     affectedCellsStr
                 )
             ),
-            helpCells = baseKeys.flatMap { key ->
-                basePositions.map { pos ->
-                    if (isRowBased) board[key][pos] else board[pos][key]
-                }
-            }.distinct() + fins + fins,
-            notesToRemove = notesToRemove
+            helpCells = helpCells + fins,
+            notesToRemove = notesToRemove,
+            chain = chain
         )
     }
 
@@ -2883,4 +2943,441 @@ class AdvancedHint(
     }
 
     private fun cellStringFormat(cell: Cell) = "r${cell.row + 1}c${cell.col + 1}"
+
+    /**
+     * 检查 AIC（交替推理链）
+     * 
+     * AIC 是交替推理链，有两种类型：
+     * 
+     * Type 1: 
+     * - 链以强链开始和结束
+     * - 两端是**相同数字**（在不同单元格中）
+     * - 证明该数字必须在链的某一端
+     * - 可以从同时看到两端的单元格中删除该数字
+     * 
+     * Type 2:
+     * - 链以强链开始和结束
+     * - 两端是**不同数字**，且在**不同的、互相可见的两个单元格**中
+     * - 证明结束数字不能在起始单元格，起始数字不能在结束单元格
+     * - 可以从起始单元格删除结束数字，从结束单元格删除起始数字
+     * 
+     * 本方法在同一次 BFS 中检测两种类型，返回找到的最短链
+     * 
+     * @param enableType1 是否启用 Type 1 检测
+     * @param enableType2 是否启用 Type 2 检测
+     * 
+     * 参考：https://hodoku.sourceforge.net/en/tech_chains.php
+     */
+    private fun checkForAIC(enableType1: Boolean, enableType2: Boolean): AdvancedHintData? {
+        if (notes.isEmpty()) return null
+        if (!enableType1 && !enableType2) return null
+        
+        // 收集所有候选数节点
+        val allNodes = notes.map { ChainNode(Cell(it.row, it.col, 0), it.value) }
+        if (allNodes.size < 4) return null
+        
+        // 构建节点之间的强弱链邻接表
+        val adjacency = buildGeneralChainAdjacency(allNodes)
+        if (adjacency.isEmpty()) return null
+        
+        // BFS 搜索有效的 AIC（同时检测 Type 1 和 Type 2）
+        val result = findAICChain(allNodes, adjacency, enableType1, enableType2)
+        return result
+    }
+
+    /**
+     * 为通用 AIC 构建邻接表
+     * 节点可以是任意单元格的任意候选数
+     */
+    private fun buildGeneralChainAdjacency(
+        nodes: List<ChainNode>
+    ): Map<ChainNode, List<Pair<ChainNode, ChainType>>> {
+        val adjacency = mutableMapOf<ChainNode, MutableList<Pair<ChainNode, ChainType>>>()
+        
+        for (i in nodes.indices) {
+            val nodeA = nodes[i]
+            val cellA = nodeA.cell
+            val valueA = nodeA.value
+            
+            for (j in i + 1 until nodes.size) {
+                val nodeB = nodes[j]
+                val cellB = nodeB.cell
+                val valueB = nodeB.value
+                
+                // 情况1：同一单元格内的不同候选数（强链）
+                if (cellA.row == cellB.row && cellA.col == cellB.col && valueA != valueB) {
+                    val cellNotes = getCellNotes(cellA)
+                    if (cellNotes.size == 2 && valueA in cellNotes && valueB in cellNotes) {
+                        // 双值格内的两个候选数形成强链
+                        adjacency.getOrPut(nodeA) { mutableListOf() }.add(nodeB to ChainType.STRONG_AND_WEAK)
+                        adjacency.getOrPut(nodeB) { mutableListOf() }.add(nodeA to ChainType.STRONG_AND_WEAK)
+                    } else {
+                        // 普通单元格内的候选数形成弱链
+                        adjacency.getOrPut(nodeA) { mutableListOf() }.add(nodeB to ChainType.WEAK)
+                        adjacency.getOrPut(nodeB) { mutableListOf() }.add(nodeA to ChainType.WEAK)
+                    }
+                }
+                
+                // 情况2：同一区域（行/列/宫）内的相同候选数
+                if (valueA == valueB && areInSameGroup(cellA, cellB)) {
+                    val chainType = determineChainTypeForValue(cellA, cellB, valueA)
+                    if (chainType != ChainType.NONE) {
+                        adjacency.getOrPut(nodeA) { mutableListOf() }.add(nodeB to chainType)
+                        adjacency.getOrPut(nodeB) { mutableListOf() }.add(nodeA to chainType)
+                    }
+                }
+            }
+        }
+        
+        return adjacency
+    }
+
+    /**
+     * 判断同一区域内相同候选数之间的链类型
+     */
+    private fun determineChainTypeForValue(cellA: Cell, cellB: Cell, value: Int): ChainType {
+        // 检查行
+        if (cellA.row == cellB.row) {
+            val count = rows[cellA.row].count { cell ->
+                cell.value == 0 && cellNotesCache[Pair(cell.row, cell.col)]?.contains(value) == true
+            }
+            return when (count) {
+                2 -> ChainType.STRONG_AND_WEAK
+                in 3..type.size -> ChainType.WEAK
+                else -> ChainType.NONE
+            }
+        }
+        
+        // 检查列
+        if (cellA.col == cellB.col) {
+            val count = columns[cellA.col].count { cell ->
+                cell.value == 0 && cellNotesCache[Pair(cell.row, cell.col)]?.contains(value) == true
+            }
+            return when (count) {
+                2 -> ChainType.STRONG_AND_WEAK
+                in 3..type.size -> ChainType.WEAK
+                else -> ChainType.NONE
+            }
+        }
+        
+        // 检查宫
+        val boxA = getBoxIndex(cellA.row, cellA.col)
+        val boxB = getBoxIndex(cellB.row, cellB.col)
+        if (boxA == boxB) {
+            val count = boxes[boxA].count { cell ->
+                cell.value == 0 && cellNotesCache[Pair(cell.row, cell.col)]?.contains(value) == true
+            }
+            return when (count) {
+                2 -> ChainType.STRONG_AND_WEAK
+                in 3..type.size -> ChainType.WEAK
+                else -> ChainType.NONE
+            }
+        }
+        
+        return ChainType.NONE
+    }
+
+    /**
+     * AIC BFS 节点数据类
+     */
+    private data class AICBfsNode(
+        val currentNode: ChainNode,
+        val path: List<ChainNode>,
+        val edgeTypes: List<ChainEdgeType>,
+        val lastChainType: ChainType?,
+        val visited: Set<ChainNode>
+    )
+
+    /**
+     * BFS 搜索 AIC 链（同时检测 Type 1 和 Type 2）
+     * 在同一次 BFS 中检测两种类型，返回找到的最短链
+     * 
+     * @param allNodes 所有候选数节点
+     * @param adjacency 节点邻接表
+     * @param enableType1 是否启用 Type 1 检测
+     * @param enableType2 是否启用 Type 2 检测
+     */
+    private fun findAICChain(
+        allNodes: List<ChainNode>,
+        adjacency: Map<ChainNode, List<Pair<ChainNode, ChainType>>>,
+        enableType1: Boolean,
+        enableType2: Boolean
+    ): AdvancedHintData? {
+        val queue = ArrayDeque<AICBfsNode>()
+        
+        // 从每个节点开始搜索，以强链开始
+        for (startNode in allNodes) {
+            if (adjacency[startNode]?.any { it.second.isStrong() } != true) continue
+            
+            queue.add(AICBfsNode(
+                currentNode = startNode,
+                path = listOf(startNode),
+                edgeTypes = emptyList(),
+                lastChainType = null,
+                visited = setOf(startNode)
+            ))
+        }
+        
+        while (queue.isNotEmpty()) {
+            val node = queue.removeFirst()
+            val currentNode = node.currentNode
+            val currentPath = node.path
+            val currentEdgeTypes = node.edgeTypes
+            val lastType = node.lastChainType
+            val visited = node.visited
+            
+            // 遍历相邻节点
+            for ((neighbor, chainType) in adjacency[currentNode] ?: emptyList()) {
+                if (neighbor in visited) continue
+                
+                // 检查链类型交替规则
+                val (isValid, edgeType) = validateChainTransition(lastType, chainType, currentPath.size)
+                if (!isValid) continue
+                
+                val newPath = currentPath + neighbor
+                val newEdgeTypes = currentEdgeTypes + edgeType
+                val newVisited = visited + neighbor
+                
+                // 检查是否形成有效的 AIC（长度>=4，偶数长度，以强链结束）
+                if (newPath.size >= 4 && newPath.size % 2 == 0 && chainType.isStrong()) {
+                    val start = newPath.first()
+                    val end = newPath.last()
+                    
+                    // 检测 Type 1: 两端相同数字
+                    if (enableType1 && start.value == end.value && start != end) {
+                        val eliminationTarget = findType1Eliminations(start, end, newPath)
+                        if (eliminationTarget != null) {
+                            val (notesToRemove, affectedCells) = eliminationTarget
+                            if (notesToRemove.isNotEmpty()) {
+                                val chain = Chain(
+                                    nodes = newPath,
+                                    edges = newPath.zipWithNext().mapIndexed { index, (from, to) ->
+                                        ChainEdge(from, to, newEdgeTypes[index])
+                                    }
+                                )
+                                return createAICHint(
+                                    type = 1,
+                                    chain = chain,
+                                    notesToRemove = notesToRemove,
+                                    affectedCells = affectedCells
+                                )
+                            }
+                        }
+                    }
+                    
+                    // 检测 Type 2: 两端不同数字，且在不同的互相可见的单元格中
+                    if (enableType2 && start.value != end.value && start.cell != end.cell && areInSameGroup(start.cell, end.cell)) {
+                        val eliminationTarget = findType2Eliminations(start, end, newPath)
+                        if (eliminationTarget != null) {
+                            val (notesToRemove, affectedCells) = eliminationTarget
+                            if (notesToRemove.isNotEmpty()) {
+                                val chain = Chain(
+                                    nodes = newPath,
+                                    edges = newPath.zipWithNext().mapIndexed { index, (from, to) ->
+                                        ChainEdge(from, to, newEdgeTypes[index])
+                                    }
+                                )
+                                return createAICHint(
+                                    type = 2,
+                                    chain = chain,
+                                    notesToRemove = notesToRemove,
+                                    affectedCells = affectedCells
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // 限制搜索深度避免过长链
+                if (newPath.size < 20) {
+                    queue.add(AICBfsNode(
+                        currentNode = neighbor,
+                        path = newPath,
+                        edgeTypes = newEdgeTypes,
+                        lastChainType = chainType,
+                        visited = newVisited
+                    ))
+                }
+            }
+        }
+        
+        return null
+    }
+
+    /**
+     * 验证链的转换是否有效（强弱交替）
+     */
+    private fun validateChainTransition(
+        lastType: ChainType?,
+        nextType: ChainType,
+        pathSize: Int
+    ): Pair<Boolean, ChainEdgeType> {
+        return when (lastType) {
+            null -> {
+                // 第一条链必须是强链
+                if (nextType.isStrong()) Pair(true, ChainEdgeType.STRONG)
+                else Pair(false, ChainEdgeType.STRONG)
+            }
+            ChainType.STRONG -> {
+                // 强链后必须跟弱链
+                if (nextType.isWeak()) Pair(true, ChainEdgeType.WEAK)
+                else Pair(false, ChainEdgeType.WEAK)
+            }
+            ChainType.WEAK -> {
+                // 弱链后必须跟强链
+                if (nextType.isStrong()) Pair(true, ChainEdgeType.STRONG)
+                else Pair(false, ChainEdgeType.STRONG)
+            }
+            ChainType.STRONG_AND_WEAK -> {
+                // 既强又弱的链，根据位置决定
+                if (pathSize % 2 == 0) {
+                    // 偶数位置，视为强链，下一个应为弱链
+                    if (nextType.isWeak()) Pair(true, ChainEdgeType.WEAK)
+                    else Pair(false, ChainEdgeType.WEAK)
+                } else {
+                    // 奇数位置，视为弱链，下一个应为强链
+                    if (nextType.isStrong()) Pair(true, ChainEdgeType.STRONG)
+                    else Pair(false, ChainEdgeType.STRONG)
+                }
+            }
+            ChainType.NONE -> Pair(false, ChainEdgeType.STRONG)
+        }
+    }
+
+    /**
+     * 找到 AIC Type 1 可以删除的候选数
+     * Type 1: 两端相同数字，证明该数字必须在某一端
+     * 删除：同时看到两端的该数字
+     */
+    private fun findType1Eliminations(
+        start: ChainNode,
+        end: ChainNode,
+        path: List<ChainNode>
+    ): Pair<List<Note>, List<Cell>>? {
+        val notesToRemove = mutableListOf<Note>()
+        val affectedCells = mutableListOf<Cell>()
+        
+        // Type 1: 删除同时看到链两端的候选数（两端是相同数字）
+        val commonVisible = getCommonVisibleCells(start.cell, end.cell)
+            .filter { it.value == 0 }
+            .filter { it !in path.map { node -> node.cell } }
+            .filter { cell -> 
+                cellNotesCache[Pair(cell.row, cell.col)]?.contains(start.value) == true
+            }
+        
+        for (cell in commonVisible) {
+            cellNoteIndex[Triple(cell.row, cell.col, start.value)]?.let { note ->
+                notesToRemove.add(note)
+                if (cell !in affectedCells) {
+                    affectedCells.add(cell)
+                }
+            }
+        }
+        
+        return if (notesToRemove.isNotEmpty()) {
+            Pair(notesToRemove, affectedCells)
+        } else null
+    }
+
+    /**
+     * 找到 AIC Type 2 可以删除的候选数
+     * Type 2: 两端不同数字，在不同的互相可见的单元格中
+     * 删除：从起始单元格删除结束数字，从结束单元格删除起始数字
+     */
+    private fun findType2Eliminations(
+        start: ChainNode,
+        end: ChainNode,
+        path: List<ChainNode>
+    ): Pair<List<Note>, List<Cell>>? {
+        val notesToRemove = mutableListOf<Note>()
+        val affectedCells = mutableListOf<Cell>()
+        
+        // Type 2: 从起始单元格删除结束数字
+        cellNoteIndex[Triple(start.cell.row, start.cell.col, end.value)]?.let { note ->
+            notesToRemove.add(note)
+            if (start.cell !in affectedCells) {
+                affectedCells.add(start.cell)
+            }
+        }
+        
+        // 从结束单元格删除起始数字
+        cellNoteIndex[Triple(end.cell.row, end.cell.col, start.value)]?.let { note ->
+            notesToRemove.add(note)
+            if (end.cell !in affectedCells) {
+                affectedCells.add(end.cell)
+            }
+        }
+        
+        return if (notesToRemove.isNotEmpty()) {
+            Pair(notesToRemove, affectedCells)
+        } else null
+    }
+
+    /**
+     * 创建 AIC 提示
+     */
+    private fun createAICHint(
+        type: Int,
+        chain: Chain,
+        notesToRemove: List<Note>,
+        affectedCells: List<Cell>
+    ): AdvancedHintData {
+        val titleRes = if (type == 1) {
+            R.string.hint_aic_type1_title
+        } else {
+            R.string.hint_aic_type2_title
+        }
+        
+        val detailRes = if (type == 1) {
+            R.string.hint_aic_type1_detail
+        } else {
+            R.string.hint_aic_type2_detail
+        }
+        
+        val start = chain.nodes.first()
+        val end = chain.nodes.last()
+        val chainPathStr = formatChainPath(chain.nodes, chain.edges)
+        val affectedCellsStr = affectedCells.joinToString(", ") { cellStringFormat(it) }
+        val removedValuesStr = notesToRemove.map { it.value }.distinct().sorted().joinToString(",")
+        
+        // 统一参数格式：起始数字、起始单元格、结尾数字、结尾单元格、链路径、删除的值、受影响的单元格
+        val detailArgs = listOf(
+            start.value.toString(),
+            cellStringFormat(start.cell),
+            end.value.toString(),
+            cellStringFormat(end.cell),
+            chainPathStr,
+            removedValuesStr,
+            affectedCellsStr
+        )
+        
+        return AdvancedHintData(
+            titleRes = titleRes,
+            textResWithArg = Pair(detailRes, detailArgs),
+            helpCells = chain.nodes.map { it.cell }.distinct(),
+            notesToRemove = notesToRemove,
+            chain = chain
+        )
+    }
+
+    /**
+     * 格式化链路径为字符串
+     * 在连接符后添加零宽度空格，允许文本在链路径中任意换行
+     */
+    private fun formatChainPath(nodes: List<ChainNode>, edges: List<ChainEdge>): String {
+        if (nodes.isEmpty()) return ""
+        
+        val sb = StringBuilder()
+        sb.append("${cellStringFormat(nodes[0].cell)}(${nodes[0].value})")
+        
+        for (i in edges.indices) {
+            val edge = edges[i]
+            val connector = if (edge.type == ChainEdgeType.STRONG) "\u200B=\u200B" else "\u200B-\u200B"
+            val nextNode = nodes[i + 1]
+            sb.append(connector)
+            sb.append("${cellStringFormat(nextNode.cell)}(${nextNode.value})")
+        }
+        
+        return sb.toString()
+    }
 }
