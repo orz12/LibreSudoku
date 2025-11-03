@@ -1,21 +1,23 @@
 package com.kaajjo.libresudoku.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode
 
@@ -23,6 +25,15 @@ import com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode
  * 三段式开关组件
  * 
  * 用于在三种状态之间切换：DISABLED（关闭）、ENABLED（启用）、AUTO（自动）
+ * 
+ * 图标说明：
+ * - 🚫 Block: 关闭（DISABLED）
+ * - ✨ AutoAwesome: 启用（ENABLED）- 提供提示
+ * - ⏩ FastForward: 自动（AUTO）- 自动执行
+ * 
+ * 交互方式：
+ * - 直接点击芯片：精确选择某个状态
+ * - 点击外层 Row（标题/空白区域）：由外层控制（通常是循环切换）
  * 
  * @param mode 当前模式
  * @param onModeChange 模式变化回调
@@ -34,92 +45,103 @@ fun TriStateSwitch(
     onModeChange: (HintMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val disabledColor = MaterialTheme.colorScheme.surfaceVariant
-    val enabledColor = MaterialTheme.colorScheme.primary
-    val autoColor = MaterialTheme.colorScheme.tertiary
-    
-    val backgroundColor by animateColorAsState(
-        targetValue = when (mode) {
-            HintMode.DISABLED -> disabledColor
-            HintMode.ENABLED -> enabledColor
-            HintMode.AUTO -> autoColor
-        },
-        animationSpec = tween(durationMillis = 300),
-        label = "backgroundColor"
-    )
-    
-    // 0.0 = left (DISABLED), 0.5 = center (ENABLED), 1.0 = right (AUTO)
-    val thumbPosition by animateFloatAsState(
-        targetValue = when (mode) {
-            HintMode.DISABLED -> 0.0f
-            HintMode.ENABLED -> 0.5f
-            HintMode.AUTO -> 1.0f
-        },
-        animationSpec = tween(durationMillis = 300),
-        label = "thumbPosition"
-    )
-    
-    val thumbColor = MaterialTheme.colorScheme.surface
-    
-    Canvas(
-        modifier = modifier
-            .size(width = 72.dp, height = 32.dp)
-            .pointerInput(mode) {
-                detectTapGestures { offset ->
-                    // 根据点击位置确定新状态
-                    val newMode = when {
-                        offset.x < size.width / 3 -> HintMode.DISABLED
-                        offset.x < size.width * 2 / 3 -> HintMode.ENABLED
-                        else -> HintMode.AUTO
-                    }
-                    if (newMode != mode) {
-                        onModeChange(newMode)
-                    }
-                }
-            }
+    val iconSize = 16.dp
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // 绘制背景轨道
-        drawRoundRect(
-            color = backgroundColor,
-            cornerRadius = CornerRadius(size.height / 2, size.height / 2),
-            size = size
+        CompactChip(
+            selected = mode == HintMode.DISABLED,
+            onClick = { onModeChange(HintMode.DISABLED) },
+            icon = Icons.Rounded.Block,
+            contentDescription = "关闭",
+            iconSize = iconSize
         )
         
-        // 绘制滑块
-        val thumbRadius = size.height * 0.8f
-        val thumbCenterX = thumbRadius / 2 + (size.width - thumbRadius) * thumbPosition
-        val thumbCenterY = size.height / 2
-        
-        drawCircle(
-            color = thumbColor,
-            radius = thumbRadius / 2,
-            center = Offset(thumbCenterX, thumbCenterY)
+        CompactChip(
+            selected = mode == HintMode.ENABLED,
+            onClick = { onModeChange(HintMode.ENABLED) },
+            icon = Icons.Rounded.AutoAwesome,
+            contentDescription = "启用",
+            iconSize = iconSize
         )
-        
-        // 绘制三个小标记点（可选，增强视觉识别）
-        val markerRadius = 2.dp.toPx()
-        val markerY = size.height * 0.15f
-        
-        // 左侧标记（关闭）
-        drawCircle(
-            color = if (mode == HintMode.DISABLED) thumbColor else backgroundColor.copy(alpha = 0.3f),
-            radius = markerRadius,
-            center = Offset(size.width * 0.17f, markerY)
+
+        CompactChip(
+            selected = mode == HintMode.AUTO,
+            onClick = { onModeChange(HintMode.AUTO) },
+            icon = Icons.Rounded.FastForward,
+            contentDescription = "自动",
+            iconSize = iconSize
         )
-        
-        // 中间标记（启用）
-        drawCircle(
-            color = if (mode == HintMode.ENABLED) thumbColor else backgroundColor.copy(alpha = 0.3f),
-            radius = markerRadius,
-            center = Offset(size.width * 0.5f, markerY)
-        )
-        
-        // 右侧标记（自动）
-        drawCircle(
-            color = if (mode == HintMode.AUTO) thumbColor else backgroundColor.copy(alpha = 0.3f),
-            radius = markerRadius,
-            center = Offset(size.width * 0.83f, markerY)
-        )
+    }
+}
+
+/**
+ * 紧凑型芯片组件
+ * 
+ * 完全自定义实现，最小化 padding
+ */
+@Composable
+private fun CompactChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    iconSize: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier
+) {
+    val containerColor by animateColorAsState(
+        targetValue = if (selected) 
+            MaterialTheme.colorScheme.secondaryContainer
+        else 
+            Color.Transparent, // 未选中时透明背景
+        animationSpec = tween(200),
+        label = "containerColor"
+    )
+    
+    val contentColor by animateColorAsState(
+        targetValue = if (selected)
+            MaterialTheme.colorScheme.onSecondaryContainer
+        else
+            MaterialTheme.colorScheme.onSurfaceVariant, // 未选中时使用次要颜色
+        animationSpec = tween(200),
+        label = "contentColor"
+    )
+    
+    val borderColor by animateColorAsState(
+        targetValue = if (selected)
+            Color.Transparent
+        else
+            MaterialTheme.colorScheme.outline, // 未选中时显示边框
+        animationSpec = tween(200),
+        label = "borderColor"
+    )
+    
+    Surface(
+        modifier = modifier
+            .height(32.dp)
+            .clip(MaterialTheme.shapes.small) // 先裁剪，防止涟漪超出圆角
+            .clickable(onClick = onClick)
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = MaterialTheme.shapes.small
+            ),
+        shape = MaterialTheme.shapes.small,
+        color = containerColor,
+        contentColor = contentColor
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(iconSize)
+            )
+        }
     }
 }
 

@@ -357,7 +357,18 @@ fun TechniqueItem(
     PreferenceRow(
         modifier = modifier,
         title = title,
-        onClick = { }, // 不需要整行点击，由三段式开关处理
+        onClick = {
+            // 点击整行时，循环切换状态
+            val nextMode = when (mode) {
+                com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED -> 
+                    com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED
+                com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED -> 
+                    com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.AUTO
+                com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.AUTO -> 
+                    com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED
+            }
+            onModeChange(nextMode)
+        },
         action = {
             com.kaajjo.libresudoku.ui.components.TriStateSwitch(
                 mode = mode,
