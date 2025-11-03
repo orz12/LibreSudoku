@@ -16,6 +16,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -215,6 +218,9 @@ fun GameScreen(viewModel: GameViewModel = hiltViewModel(), navigator: Destinatio
             )
     val advancedHintMode by viewModel.advancedHintMode.collectAsStateWithLifecycle(false)
     val advancedHintData by viewModel.advancedHintData.collectAsStateWithLifecycle(null)
+    val hasAutoHint by viewModel.hasAutoHint.collectAsStateWithLifecycle(false)
+    val isAutoExecuting by viewModel.isAutoExecuting.collectAsStateWithLifecycle(false)
+    
     if (keepScreenOn) {
         KeepScreenOn()
     }
@@ -529,8 +535,10 @@ fun GameScreen(viewModel: GameViewModel = hiltViewModel(), navigator: Destinatio
 
     LaunchedEffect(viewModel.mistakesMethod) { viewModel.checkMistakesAll() }
 
-    LaunchedEffect(Unit) {
-        if (!viewModel.endGame && !viewModel.gameCompleted) {
+    // 等待初始化完成后再启动游戏
+    val isInitialized by viewModel.isInitialized.collectAsState()
+    LaunchedEffect(isInitialized) {
+        if (isInitialized && !viewModel.endGame && !viewModel.gameCompleted) {
             viewModel.startTimer()
         }
     }
@@ -725,6 +733,8 @@ fun GameToolbarRow(
                     initialValue = PreferencesConstants.DEFAULT_ADVANCED_HINT
             )
     val isLoadingAdvancedHint by viewModel.isLoadingAdvancedHint.collectAsStateWithLifecycle(false)
+    val hasAutoHint by viewModel.hasAutoHint.collectAsStateWithLifecycle(false)
+    val isAutoExecuting by viewModel.isAutoExecuting.collectAsStateWithLifecycle(false)
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = modifier) {
         // Undo 按钮
@@ -787,18 +797,42 @@ fun GameToolbarRow(
                 }
         )
 
-        // Advanced Hint 按钮
+        // Advanced Hint / 快进 按钮
         if (advancedHintEnabled) {
-            ToolbarItem(
-                    modifier = Modifier.weight(1f),
-                    painter = rememberVectorPainter(Icons.Rounded.AutoAwesome),
-                    isLoading = isLoadingAdvancedHint,
-                    onClick = {
-                        if (viewModel.gamePlaying) {
-                            viewModel.getAdvancedHint()
+            Box(modifier = Modifier.weight(1f)) {
+                ToolbarItem(
+                        painter = rememberVectorPainter(
+                            if (hasAutoHint) Icons.Rounded.FastForward 
+                            else Icons.Rounded.AutoAwesome
+                        ),
+                        isLoading = isLoadingAdvancedHint || isAutoExecuting,
+                        onClick = {
+                            if (viewModel.gamePlaying) {
+                                if (hasAutoHint) {
+                                    // 执行自动提示
+                                    viewModel.executeAutoHints()
+                                } else {
+                                    // 获取手动提示
+                                    viewModel.getAdvancedHint()
+                                }
+                            }
                         }
-                    }
-            )
+                )
+                
+                // 红点提示
+                if (hasAutoHint && !isAutoExecuting) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = 8.dp, top = 8.dp)
+                            .size(10.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.error,
+                                shape = androidx.compose.foundation.shape.CircleShape
+                            )
+                    )
+                }
+            }
         }
     }
 }

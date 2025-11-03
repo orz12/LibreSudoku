@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -72,12 +71,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_wrong_value_title),
-                    checked = advancedHintSettings.checkWrongValue,
-                    onClick = {
+                    mode = advancedHintSettings.checkWrongValue,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                checkWrongValue = !advancedHintSettings.checkWrongValue
-                            )
+                            advancedHintSettings.copy(checkWrongValue = newMode)
                         )
                     }
                 )
@@ -85,12 +82,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_full_house_group_title),
-                    checked = advancedHintSettings.fullHouse,
-                    onClick = {
+                    mode = advancedHintSettings.fullHouse,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                fullHouse = !advancedHintSettings.fullHouse
-                            )
+                            advancedHintSettings.copy(fullHouse = newMode)
                         )
                     }
                 )
@@ -98,12 +93,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_naked_single_title),
-                    checked = advancedHintSettings.nakedSingle,
-                    onClick = {
+                    mode = advancedHintSettings.nakedSingle,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                nakedSingle = !advancedHintSettings.nakedSingle
-                            )
+                            advancedHintSettings.copy(nakedSingle = newMode)
                         )
                     }
                 )
@@ -111,12 +104,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_hidden_single_title),
-                    checked = advancedHintSettings.hiddenSingle,
-                    onClick = {
+                    mode = advancedHintSettings.hiddenSingle,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                hiddenSingle = !advancedHintSettings.hiddenSingle
-                            )
+                            advancedHintSettings.copy(hiddenSingle = newMode)
                         )
                     }
                 )
@@ -124,12 +115,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_missing_or_wrong_note_title),
-                    checked = advancedHintSettings.checkMissingOrWrongNote,
-                    onClick = {
+                    mode = advancedHintSettings.checkMissingOrWrongNote,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                checkMissingOrWrongNote = !advancedHintSettings.checkMissingOrWrongNote
-                            )
+                            advancedHintSettings.copy(checkMissingOrWrongNote = newMode)
                         )
                     }
                 )
@@ -137,12 +126,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_locked_candidates_title),
-                    checked = advancedHintSettings.lockedCandidates,
-                    onClick = {
+                    mode = advancedHintSettings.lockedCandidates,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                lockedCandidates = !advancedHintSettings.lockedCandidates
-                            )
+                            advancedHintSettings.copy(lockedCandidates = newMode)
                         )
                     }
                 )
@@ -150,12 +137,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_naked_subsets_title),
-                    checked = advancedHintSettings.nakedSubsets,
-                    onClick = {
+                    mode = advancedHintSettings.nakedSubsets,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                nakedSubsets = !advancedHintSettings.nakedSubsets
-                            )
+                            advancedHintSettings.copy(nakedSubsets = newMode)
                         )
                     }
                 )
@@ -163,12 +148,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_hidden_subsets_title),
-                    checked = advancedHintSettings.hiddenSubsets,
-                    onClick = {
+                    mode = advancedHintSettings.hiddenSubsets,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                hiddenSubsets = !advancedHintSettings.hiddenSubsets
-                            )
+                            advancedHintSettings.copy(hiddenSubsets = newMode)
                         )
                     }
                 )
@@ -176,12 +159,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_sue_de_coq_title),
-                    checked = advancedHintSettings.sueDeCoq,
-                    onClick = {
+                    mode = advancedHintSettings.sueDeCoq,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                sueDeCoq = !advancedHintSettings.sueDeCoq
-                            )
+                            advancedHintSettings.copy(sueDeCoq = newMode)
                         )
                     }
                 )
@@ -189,12 +170,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_x_wing_title),
-                    checked = advancedHintSettings.xWings,
-                    onClick = {
+                    mode = advancedHintSettings.xWings,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                xWings = !advancedHintSettings.xWings
-                            )
+                            advancedHintSettings.copy(xWings = newMode)
                         )
                     }
                 )
@@ -202,12 +181,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_xy_wing_title),
-                    checked = advancedHintSettings.xyWings,
-                    onClick = {
+                    mode = advancedHintSettings.xyWings,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                xyWings = !advancedHintSettings.xyWings
-                            )
+                            advancedHintSettings.copy(xyWings = newMode)
                         )
                     }
                 )
@@ -215,12 +192,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_xyz_wing_title),
-                    checked = advancedHintSettings.xyzWings,
-                    onClick = {
+                    mode = advancedHintSettings.xyzWings,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                xyzWings = !advancedHintSettings.xyzWings
-                            )
+                            advancedHintSettings.copy(xyzWings = newMode)
                         )
                     }
                 )
@@ -228,12 +203,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_w_wing_title),
-                    checked = advancedHintSettings.wWings,
-                    onClick = {
+                    mode = advancedHintSettings.wWings,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                wWings = !advancedHintSettings.wWings
-                            )
+                            advancedHintSettings.copy(wWings = newMode)
                         )
                     }
                 )
@@ -241,12 +214,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_fish_patterns_title),
-                    checked = advancedHintSettings.fishPatterns,
-                    onClick = {
+                    mode = advancedHintSettings.fishPatterns,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                fishPatterns = !advancedHintSettings.fishPatterns
-                            )
+                            advancedHintSettings.copy(fishPatterns = newMode)
                         )
                     }
                 )
@@ -254,12 +225,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_finned_fish_variants_title),
-                    checked = advancedHintSettings.finnedFishVariants,
-                    onClick = {
+                    mode = advancedHintSettings.finnedFishVariants,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                finnedFishVariants = !advancedHintSettings.finnedFishVariants
-                            )
+                            advancedHintSettings.copy(finnedFishVariants = newMode)
                         )
                     }
                 )
@@ -267,12 +236,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_x_chain_title),
-                    checked = advancedHintSettings.xChain,
-                    onClick = {
+                    mode = advancedHintSettings.xChain,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                xChain = !advancedHintSettings.xChain
-                            )
+                            advancedHintSettings.copy(xChain = newMode)
                         )
                     }
                 )
@@ -280,12 +247,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_xy_chain_title),
-                    checked = advancedHintSettings.xyChain,
-                    onClick = {
+                    mode = advancedHintSettings.xyChain,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                xyChain = !advancedHintSettings.xyChain
-                            )
+                            advancedHintSettings.copy(xyChain = newMode)
                         )
                     }
                 )
@@ -293,12 +258,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_aic_type1_title),
-                    checked = advancedHintSettings.aicType1,
-                    onClick = {
+                    mode = advancedHintSettings.aicType1,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                aicType1 = !advancedHintSettings.aicType1
-                            )
+                            advancedHintSettings.copy(aicType1 = newMode)
                         )
                     }
                 )
@@ -306,12 +269,10 @@ fun SettingsAdvancedHintScreen(
             item {
                 TechniqueItem(
                     title = stringResource(R.string.hint_aic_type2_title),
-                    checked = advancedHintSettings.aicType2,
-                    onClick = {
+                    mode = advancedHintSettings.aicType2,
+                    onModeChange = { newMode ->
                         viewModel.updateAdvancedHintSettings(
-                            advancedHintSettings.copy(
-                                aicType2 = !advancedHintSettings.aicType2
-                            )
+                            advancedHintSettings.copy(aicType2 = newMode)
                         )
                     }
                 )
@@ -389,18 +350,18 @@ private fun BigCardSwitch(
 @Composable
 fun TechniqueItem(
     title: String,
-    checked: Boolean,
-    onClick: () -> Unit,
+    mode: com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode,
+    onModeChange: (com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     PreferenceRow(
         modifier = modifier,
         title = title,
-        onClick = onClick,
+        onClick = { }, // 不需要整行点击，由三段式开关处理
         action = {
-            Checkbox(
-                checked = checked,
-                onCheckedChange = { onClick() }
+            com.kaajjo.libresudoku.ui.components.TriStateSwitch(
+                mode = mode,
+                onModeChange = onModeChange
             )
         }
     )

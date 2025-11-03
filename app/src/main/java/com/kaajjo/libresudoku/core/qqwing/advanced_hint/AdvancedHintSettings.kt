@@ -1,28 +1,58 @@
 package com.kaajjo.libresudoku.core.qqwing.advanced_hint
 
 /**
- * With this, you can enable or disable techniques for advanced hint
+ * 高级提示的技巧设置
  *
- * @constructor Everything is enabled by default
+ * 每个技巧支持三种模式：
+ * - DISABLED: 关闭
+ * - ENABLED: 启用（手动）
+ * - AUTO: 自动执行
+ *
+ * @constructor 所有技巧默认为ENABLED（启用但不自动）
  */
 data class AdvancedHintSettings(
-    val fullHouse: Boolean = true,
-    val nakedSingle: Boolean = true,
-    val hiddenSingle: Boolean = true,
-    val checkWrongValue: Boolean = true,
-    val checkMissingOrWrongNote: Boolean = true,
-    val lockedCandidates: Boolean = true,
-    val nakedSubsets: Boolean = true,
-    val hiddenSubsets: Boolean = true,
-    val sueDeCoq: Boolean = true,
-    val xWings: Boolean = true,
-    val xyWings: Boolean = true,
-    val xyzWings: Boolean = true,
-    val wWings: Boolean = true,
-    val fishPatterns: Boolean = true,
-    val finnedFishVariants: Boolean = true,
-    val xChain: Boolean = true,
-    val xyChain: Boolean = true,
-    val aicType1: Boolean = true,
-    val aicType2: Boolean = true,
-)
+    val fullHouse: HintMode = HintMode.ENABLED,
+    val nakedSingle: HintMode = HintMode.ENABLED,
+    val hiddenSingle: HintMode = HintMode.ENABLED,
+    val checkWrongValue: HintMode = HintMode.ENABLED,
+    val checkMissingOrWrongNote: HintMode = HintMode.ENABLED,
+    val lockedCandidates: HintMode = HintMode.ENABLED,
+    val nakedSubsets: HintMode = HintMode.ENABLED,
+    val hiddenSubsets: HintMode = HintMode.ENABLED,
+    val sueDeCoq: HintMode = HintMode.ENABLED,
+    val xWings: HintMode = HintMode.ENABLED,
+    val xyWings: HintMode = HintMode.ENABLED,
+    val xyzWings: HintMode = HintMode.ENABLED,
+    val wWings: HintMode = HintMode.ENABLED,
+    val fishPatterns: HintMode = HintMode.ENABLED,
+    val finnedFishVariants: HintMode = HintMode.ENABLED,
+    val xChain: HintMode = HintMode.ENABLED,
+    val xyChain: HintMode = HintMode.ENABLED,
+    val aicType1: HintMode = HintMode.ENABLED,
+    val aicType2: HintMode = HintMode.ENABLED,
+) {
+    /**
+     * 检查是否有任何技巧设置为自动模式
+     */
+    fun hasAutoMode(): Boolean {
+        return fullHouse.isAuto() ||
+                nakedSingle.isAuto() ||
+                hiddenSingle.isAuto() ||
+                checkWrongValue.isAuto() ||
+                checkMissingOrWrongNote.isAuto() ||
+                lockedCandidates.isAuto() ||
+                nakedSubsets.isAuto() ||
+                hiddenSubsets.isAuto() ||
+                sueDeCoq.isAuto() ||
+                xWings.isAuto() ||
+                xyWings.isAuto() ||
+                xyzWings.isAuto() ||
+                wWings.isAuto() ||
+                fishPatterns.isAuto() ||
+                finnedFishVariants.isAuto() ||
+                xChain.isAuto() ||
+                xyChain.isAuto() ||
+                aicType1.isAuto() ||
+                aicType2.isAuto()
+    }
+}

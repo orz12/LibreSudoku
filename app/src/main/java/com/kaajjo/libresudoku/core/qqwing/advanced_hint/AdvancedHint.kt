@@ -84,33 +84,33 @@ class AdvancedHint(
 
     fun getEasiestHint(): AdvancedHintData? {
         val hint: AdvancedHintData? = null
-        if (settings.checkWrongValue) checkForWrongValue()?.let { return it }
-        if (settings.fullHouse) checkForFullHouse()?.let { return it }
+        if (settings.checkWrongValue.isActive()) checkForWrongValue()?.let { return it }
+        if (settings.fullHouse.isActive()) checkForFullHouse()?.let { return it }
         // 为了保证候选数准确，在此强制使用全盘计算候选数
         val tempNotes = if (checkAllNotes()) notes else SudokuUtils().computeNotes(board, type)
-        if (settings.nakedSingle) checkForNakedSingle(tempNotes)?.let { return it }
-        if (settings.hiddenSingle) checkForHiddenSingle(tempNotes)?.let { return it }
+        if (settings.nakedSingle.isActive()) checkForNakedSingle(tempNotes)?.let { return it }
+        if (settings.hiddenSingle.isActive()) checkForHiddenSingle(tempNotes)?.let { return it }
 
-        if (settings.checkMissingOrWrongNote) {
+        if (settings.checkMissingOrWrongNote.isActive()) {
             checkForMissingOrWrongNote()?.let { return it }
         } else {
             // 如果未启用候选数检测且没有全填候选数，则后续检测的正确性无法保证，提前退出
             if (!checkAllNotes()) return null
         }
-        if (settings.lockedCandidates) checkForLockedCandidates()?.let { return it }
-        if (settings.nakedSubsets) checkForNakedSubsets()?.let { return it }
-        if (settings.hiddenSubsets) checkForHiddenSubsets()?.let { return it }
-        if (settings.sueDeCoq) checkForSueDeCoq()?.let { return it }
-        if (settings.xWings) checkForXWing()?.let { return it }
-        if (settings.xyWings) checkForXYWing()?.let { return it }
-        if (settings.xyzWings) checkForXYZWing()?.let { return it }
-        if (settings.wWings) checkForWWing()?.let { return it }
-        if (settings.fishPatterns) checkForFishPatterns()?.let { return it }
-        if (settings.finnedFishVariants) checkForFinnedFishVariants()?.let { return it }
-        if (settings.xChain) checkForXChain()?.let {return it}
-        if (settings.xyChain) checkForXYChain()?.let { return it }
-        if (settings.aicType1 || settings.aicType2) {
-            checkForAIC(settings.aicType1, settings.aicType2)?.let { return it }
+        if (settings.lockedCandidates.isActive()) checkForLockedCandidates()?.let { return it }
+        if (settings.nakedSubsets.isActive()) checkForNakedSubsets()?.let { return it }
+        if (settings.hiddenSubsets.isActive()) checkForHiddenSubsets()?.let { return it }
+        if (settings.sueDeCoq.isActive()) checkForSueDeCoq()?.let { return it }
+        if (settings.xWings.isActive()) checkForXWing()?.let { return it }
+        if (settings.xyWings.isActive()) checkForXYWing()?.let { return it }
+        if (settings.xyzWings.isActive()) checkForXYZWing()?.let { return it }
+        if (settings.wWings.isActive()) checkForWWing()?.let { return it }
+        if (settings.fishPatterns.isActive()) checkForFishPatterns()?.let { return it }
+        if (settings.finnedFishVariants.isActive()) checkForFinnedFishVariants()?.let { return it }
+        if (settings.xChain.isActive()) checkForXChain()?.let {return it}
+        if (settings.xyChain.isActive()) checkForXYChain()?.let { return it }
+        if (settings.aicType1.isActive() || settings.aicType2.isActive()) {
+            checkForAIC(settings.aicType1.isActive(), settings.aicType2.isActive())?.let { return it }
         }
         return hint
     }
@@ -1365,7 +1365,7 @@ class AdvancedHint(
         }
         val helperCells = baseRows.flatMap { row ->
             baseCols.map { col -> board[row][col] }
-        } + baseRows.flatMap { row -> rows[row] } + baseCols.flatMap { col -> columns[col] }
+        }
         val chainNodes = helperCells.distinct().filter { cell -> cell.value == 0 && cellNotesCache[Pair(cell.row, cell.col)]!!.contains(number) }
             .map { ChainNode(it, number) }
         val chain = Chain(nodes = chainNodes, edges = emptyList())
@@ -3189,7 +3189,7 @@ class AdvancedHint(
                 }
                 
                 // 限制搜索深度避免过长链
-                if (newPath.size < 20) {
+                if (newPath.size < 30) {
                     queue.add(AICBfsNode(
                         currentNode = neighbor,
                         path = newPath,

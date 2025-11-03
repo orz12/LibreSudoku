@@ -99,26 +99,48 @@ class AppSettingsManager(context: Context) {
 
     private val advancedHintKey = booleanPreferencesKey("advanced_hint")
 
-    private val advancedHintTechniqueKey = booleanPreferencesKey("hint_technique_")
-    private val ahFullHouseKey = booleanPreferencesKey("ah_full_house")
-    private val ahNakedSingle = booleanPreferencesKey("ah_naked_single")
-    private val ahHiddenSingle = booleanPreferencesKey("ah_hidden_single")
-    private val ahCheckWrongValue = booleanPreferencesKey("ah_check_wrong_value")
-    private val ahCheckMissingOrWrongNote = booleanPreferencesKey("ah_check_missing_or_wrong_note")
-    private val ahLockedCandidates = booleanPreferencesKey("ah_locked_candidates")
-    private val ahNakedSubsets = booleanPreferencesKey("ah_naked_subsets")
-    private val ahHiddenSubsets = booleanPreferencesKey("ah_hidden_subsets")
-    private val ahSueDeCoq = booleanPreferencesKey("ah_sue_de_coq")
-    private val ahXWings = booleanPreferencesKey("ah_x_wings")
-    private val ahXYWings = booleanPreferencesKey("ah_xy_wings")
-    private val ahXYZWings = booleanPreferencesKey("ah_xyz_wings")
-    private val ahWWings = booleanPreferencesKey("ah_w_wings")
-    private val ahFishPatterns = booleanPreferencesKey("ah_fish_patterns")
-    private val ahFinnedFishVariants = booleanPreferencesKey("ah_finned_fish_variants")
-    private val ahXChain = booleanPreferencesKey("ah_x_chain")
-    private val ahXYChain = booleanPreferencesKey("ah_xy_chain")
-    private val ahAICType1 = booleanPreferencesKey("ah_aic_type1")
-    private val ahAICType2 = booleanPreferencesKey("ah_aic_type2")
+    // 改用intPreferencesKey存储HintMode (0=DISABLED, 1=ENABLED, 2=AUTO)
+    // 使用_v2后缀避免与旧版本Boolean类型冲突
+    private val ahFullHouseKey = intPreferencesKey("ah_full_house_v2")
+    private val ahNakedSingleKey = intPreferencesKey("ah_naked_single_v2")
+    private val ahHiddenSingleKey = intPreferencesKey("ah_hidden_single_v2")
+    private val ahCheckWrongValueKey = intPreferencesKey("ah_check_wrong_value_v2")
+    private val ahCheckMissingOrWrongNoteKey = intPreferencesKey("ah_check_missing_or_wrong_note_v2")
+    private val ahLockedCandidatesKey = intPreferencesKey("ah_locked_candidates_v2")
+    private val ahNakedSubsetsKey = intPreferencesKey("ah_naked_subsets_v2")
+    private val ahHiddenSubsetsKey = intPreferencesKey("ah_hidden_subsets_v2")
+    private val ahSueDeCoqKey = intPreferencesKey("ah_sue_de_coq_v2")
+    private val ahXWingsKey = intPreferencesKey("ah_x_wings_v2")
+    private val ahXYWingsKey = intPreferencesKey("ah_xy_wings_v2")
+    private val ahXYZWingsKey = intPreferencesKey("ah_xyz_wings_v2")
+    private val ahWWingsKey = intPreferencesKey("ah_w_wings_v2")
+    private val ahFishPatternsKey = intPreferencesKey("ah_fish_patterns_v2")
+    private val ahFinnedFishVariantsKey = intPreferencesKey("ah_finned_fish_variants_v2")
+    private val ahXChainKey = intPreferencesKey("ah_x_chain_v2")
+    private val ahXYChainKey = intPreferencesKey("ah_xy_chain_v2")
+    private val ahAICType1Key = intPreferencesKey("ah_aic_type1_v2")
+    private val ahAICType2Key = intPreferencesKey("ah_aic_type2_v2")
+    
+    // 兼容旧版本的Boolean key（用于迁移）
+    private val ahFullHouseKeyLegacy = booleanPreferencesKey("ah_full_house")
+    private val ahNakedSingleLegacy = booleanPreferencesKey("ah_naked_single")
+    private val ahHiddenSingleLegacy = booleanPreferencesKey("ah_hidden_single")
+    private val ahCheckWrongValueLegacy = booleanPreferencesKey("ah_check_wrong_value")
+    private val ahCheckMissingOrWrongNoteLegacy = booleanPreferencesKey("ah_check_missing_or_wrong_note")
+    private val ahLockedCandidatesLegacy = booleanPreferencesKey("ah_locked_candidates")
+    private val ahNakedSubsetsLegacy = booleanPreferencesKey("ah_naked_subsets")
+    private val ahHiddenSubsetsLegacy = booleanPreferencesKey("ah_hidden_subsets")
+    private val ahSueDeCoqLegacy = booleanPreferencesKey("ah_sue_de_coq")
+    private val ahXWingsLegacy = booleanPreferencesKey("ah_x_wings")
+    private val ahXYWingsLegacy = booleanPreferencesKey("ah_xy_wings")
+    private val ahXYZWingsLegacy = booleanPreferencesKey("ah_xyz_wings")
+    private val ahWWingsLegacy = booleanPreferencesKey("ah_w_wings")
+    private val ahFishPatternsLegacy = booleanPreferencesKey("ah_fish_patterns")
+    private val ahFinnedFishVariantsLegacy = booleanPreferencesKey("ah_finned_fish_variants")
+    private val ahXChainLegacy = booleanPreferencesKey("ah_x_chain")
+    private val ahXYChainLegacy = booleanPreferencesKey("ah_xy_chain")
+    private val ahAICType1Legacy = booleanPreferencesKey("ah_aic_type1")
+    private val ahAICType2Legacy = booleanPreferencesKey("ah_aic_type2")
 
     private val autoUpdateChannelKey = intPreferencesKey("auto_update")
     private val updateDismissedNameKey = stringPreferencesKey("update_dismissed_name") // name of the update that was dismissed
@@ -418,70 +440,65 @@ class AppSettingsManager(context: Context) {
     }
 
     val advancedHintSettings = dataStore.data.map { settings ->
-        val fullHouse = settings[ahFullHouseKey] ?: true
-        val nakedSingle = settings[ahNakedSingle] ?: true
-        val hiddenSingle = settings[ahHiddenSingle] ?: true
-        val checkWrongValue = settings[ahCheckWrongValue] ?: true
-        val checkMissingOrWrongNote = settings[ahCheckMissingOrWrongNote] ?: true
-        val lockedCandidates = settings[ahLockedCandidates] ?: true
-        val nakedSubsets = settings[ahNakedSubsets] ?: true
-        val hiddenSubsets = settings[ahHiddenSubsets] ?: true
-        val sueDeCoq = settings[ahSueDeCoq] ?: true
-        val xWings = settings[ahXWings] ?: true
-        val xyWings = settings[ahXYWings] ?: true
-        val xyzWings = settings[ahXYZWings] ?: true
-        val wWings = settings[ahWWings] ?: true
-        val fishPatterns = settings[ahFishPatterns] ?: true
-        val finnedFishVariants = settings[ahFinnedFishVariants] ?: true
-        val xChain = settings[ahXChain] ?: true
-        val xyChain = settings[ahXYChain] ?: true
-        val aicType1 = settings[ahAICType1] ?: true
-        val aicType2 = settings[ahAICType2] ?: true
-
+        // 辅助函数：读取HintMode，支持从旧版本Boolean迁移
+        fun getHintMode(key: Preferences.Key<Int>, legacyKey: Preferences.Key<Boolean>): com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode {
+            val intValue = settings[key]
+            if (intValue != null) {
+                return com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.fromInt(intValue)
+            }
+            // 尝试从旧版本Boolean迁移
+            val boolValue = settings[legacyKey]
+            return if (boolValue != null) {
+                com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.fromBoolean(boolValue)
+            } else {
+                com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED // 默认值
+            }
+        }
+        
         AdvancedHintSettings(
-            fullHouse = fullHouse,
-            nakedSingle = nakedSingle,
-            hiddenSingle = hiddenSingle,
-            checkWrongValue = checkWrongValue,
-            checkMissingOrWrongNote = checkMissingOrWrongNote,
-            lockedCandidates = lockedCandidates,
-            nakedSubsets = nakedSubsets,
-            hiddenSubsets = hiddenSubsets,
-            sueDeCoq = sueDeCoq,
-            xWings = xWings,
-            xyWings = xyWings,
-            xyzWings = xyzWings,
-            wWings = wWings,
-            fishPatterns = fishPatterns,
-            finnedFishVariants = finnedFishVariants,
-            xChain = xChain,
-            xyChain = xyChain,
-            aicType1 = aicType1,
-            aicType2 = aicType2,
+            fullHouse = getHintMode(ahFullHouseKey, ahFullHouseKeyLegacy),
+            nakedSingle = getHintMode(ahNakedSingleKey, ahNakedSingleLegacy),
+            hiddenSingle = getHintMode(ahHiddenSingleKey, ahHiddenSingleLegacy),
+            checkWrongValue = getHintMode(ahCheckWrongValueKey, ahCheckWrongValueLegacy),
+            checkMissingOrWrongNote = getHintMode(ahCheckMissingOrWrongNoteKey, ahCheckMissingOrWrongNoteLegacy),
+            lockedCandidates = getHintMode(ahLockedCandidatesKey, ahLockedCandidatesLegacy),
+            nakedSubsets = getHintMode(ahNakedSubsetsKey, ahNakedSubsetsLegacy),
+            hiddenSubsets = getHintMode(ahHiddenSubsetsKey, ahHiddenSubsetsLegacy),
+            sueDeCoq = getHintMode(ahSueDeCoqKey, ahSueDeCoqLegacy),
+            xWings = getHintMode(ahXWingsKey, ahXWingsLegacy),
+            xyWings = getHintMode(ahXYWingsKey, ahXYWingsLegacy),
+            xyzWings = getHintMode(ahXYZWingsKey, ahXYZWingsLegacy),
+            wWings = getHintMode(ahWWingsKey, ahWWingsLegacy),
+            fishPatterns = getHintMode(ahFishPatternsKey, ahFishPatternsLegacy),
+            finnedFishVariants = getHintMode(ahFinnedFishVariantsKey, ahFinnedFishVariantsLegacy),
+            xChain = getHintMode(ahXChainKey, ahXChainLegacy),
+            xyChain = getHintMode(ahXYChainKey, ahXYChainLegacy),
+            aicType1 = getHintMode(ahAICType1Key, ahAICType1Legacy),
+            aicType2 = getHintMode(ahAICType2Key, ahAICType2Legacy),
         )
     }
 
     suspend fun updateAdvancedHintSettings(ahSettings: AdvancedHintSettings) {
         dataStore.edit { settings ->
-            settings[ahFullHouseKey] = ahSettings.fullHouse
-            settings[ahNakedSingle] = ahSettings.nakedSingle
-            settings[ahHiddenSingle] = ahSettings.hiddenSingle
-            settings[ahCheckWrongValue] = ahSettings.checkWrongValue
-            settings[ahCheckMissingOrWrongNote] = ahSettings.checkMissingOrWrongNote
-            settings[ahLockedCandidates] = ahSettings.lockedCandidates
-            settings[ahNakedSubsets] = ahSettings.nakedSubsets
-            settings[ahHiddenSubsets] = ahSettings.hiddenSubsets
-            settings[ahSueDeCoq] = ahSettings.sueDeCoq
-            settings[ahXWings] = ahSettings.xWings
-            settings[ahXYWings] = ahSettings.xyWings
-            settings[ahXYZWings] = ahSettings.xyzWings
-            settings[ahWWings] = ahSettings.wWings
-            settings[ahFishPatterns] = ahSettings.fishPatterns
-            settings[ahFinnedFishVariants] = ahSettings.finnedFishVariants
-            settings[ahXChain] = ahSettings.xChain
-            settings[ahXYChain] = ahSettings.xyChain
-            settings[ahAICType1] = ahSettings.aicType1
-            settings[ahAICType2] = ahSettings.aicType2
+            settings[ahFullHouseKey] = ahSettings.fullHouse.toInt()
+            settings[ahNakedSingleKey] = ahSettings.nakedSingle.toInt()
+            settings[ahHiddenSingleKey] = ahSettings.hiddenSingle.toInt()
+            settings[ahCheckWrongValueKey] = ahSettings.checkWrongValue.toInt()
+            settings[ahCheckMissingOrWrongNoteKey] = ahSettings.checkMissingOrWrongNote.toInt()
+            settings[ahLockedCandidatesKey] = ahSettings.lockedCandidates.toInt()
+            settings[ahNakedSubsetsKey] = ahSettings.nakedSubsets.toInt()
+            settings[ahHiddenSubsetsKey] = ahSettings.hiddenSubsets.toInt()
+            settings[ahSueDeCoqKey] = ahSettings.sueDeCoq.toInt()
+            settings[ahXWingsKey] = ahSettings.xWings.toInt()
+            settings[ahXYWingsKey] = ahSettings.xyWings.toInt()
+            settings[ahXYZWingsKey] = ahSettings.xyzWings.toInt()
+            settings[ahWWingsKey] = ahSettings.wWings.toInt()
+            settings[ahFishPatternsKey] = ahSettings.fishPatterns.toInt()
+            settings[ahFinnedFishVariantsKey] = ahSettings.finnedFishVariants.toInt()
+            settings[ahXChainKey] = ahSettings.xChain.toInt()
+            settings[ahXYChainKey] = ahSettings.xyChain.toInt()
+            settings[ahAICType1Key] = ahSettings.aicType1.toInt()
+            settings[ahAICType2Key] = ahSettings.aicType2.toInt()
         }
     }
 

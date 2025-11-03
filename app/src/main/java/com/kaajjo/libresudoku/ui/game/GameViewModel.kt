@@ -120,9 +120,54 @@ class GameViewModel @Inject constructor(
                 size = gameBoard.size
                 undoRedoManager = UndoRedoManager(GameState(gameBoard, notes))
                 remainingUsesList = countRemainingUses(gameBoard)
+                
+                // 初始化GameStateManager
+                initializeGameStateManager()
+                
+                // 标记初始化完成
+                _isInitialized.emit(true)
             }
             saveGame()
         }
+    }
+    
+    /**
+     * 初始化游戏状态管理器
+     */
+    private fun initializeGameStateManager() {
+        gameStateManager = GameStateManager()
+    }
+    
+    /**
+     * 获取当前GameStateManager配置
+     * 
+     * 注意：使用 gameType 而不是 boardEntity.type
+     * 因为 boardEntity 是 lateinit，在异步初始化
+     * 而 gameType 在 Main 线程中同步赋值，更安全
+     */
+    private fun getGameStateConfig(): GameStateManager.Config {
+        return GameStateManager.Config(
+            gameType = gameType,  // ✅ 使用已同步的 gameType
+            solvedBoard = solvedBoard,
+            mistakesMethod = mistakesMethod.value,
+            autoEraseNotesEnabled = autoEraseNotes.value,
+            onMistake = {
+                mistakesMade++
+                if (mistakesLimit.value) {
+                    mistakesCount++
+                    if (mistakesCount >= PreferencesConstants.MISTAKES_LIMIT) {
+                        pauseTimer()
+                        giveUp()
+                        endGame = true
+                    }
+                }
+            },
+            onGameCompleted = {
+                // 注意：实际的游戏完成处理在 setValueCell 中统一执行
+                // 这里保留回调是为了保持 GameStateManager 的接口完整性
+                // GameStateManager 负责"检测"完成，ViewModel 负责"处理"完成
+            }
+        )
     }
 
     var giveUp by mutableStateOf(false)
@@ -244,6 +289,27 @@ class GameViewModel @Inject constructor(
     private var _advancedHintText = MutableStateFlow("")
     val advancedHintText = _advancedHintText.asStateFlow()
 
+    /**
+     * 初始化状态管理
+     * 
+     * 设计原则：
+     * - 显式的初始化状态，避免依赖 lateinit 或默认值判断
+     * - UI 层可以等待初始化完成后再调用需要初始化数据的方法
+     * - 所有依赖初始化数据的操作都应检查此状态
+     */
+    private var _isInitialized = MutableStateFlow(false)
+    val isInitialized = _isInitialized.asStateFlow()
+
+    // 自动提示管理器
+    private var _hasAutoHint = MutableStateFlow(false)
+    val hasAutoHint = _hasAutoHint.asStateFlow()
+    
+    private var _isAutoExecuting = MutableStateFlow(false)
+    val isAutoExecuting = _isAutoExecuting.asStateFlow()
+    
+    // 游戏状态管理器（延迟初始化）
+    private lateinit var gameStateManager: GameStateManager
+
     private fun clearNotesAtCell(
         notes: List<Note>,
         row: Int = currCell.row,
@@ -281,57 +347,45 @@ class GameViewModel @Inject constructor(
         row: Int = currCell.row,
         col: Int = currCell.col
     ): List<List<Cell>> {
-        var new = getBoardNoRef()
-
-        new[row][col].value = value
-        remainingUsesList = countRemainingUses(new)
-
+        // 使用GameStateManager统一处理状态修改
+        val result = gameStateManager.setCellValue(
+            config = getGameStateConfig(),
+            board = gameBoard,
+            notes = notes,
+            row = row,
+            col = col,
+            value = value,
+            mode = if (_isAutoExecuting.value) GameStateManager.ExecutionMode.AUTO 
+                   else GameStateManager.ExecutionMode.MANUAL,
+            onStateChanged = { change ->
+                // 只在手动模式下触发检测
+                if (!_isAutoExecuting.value) {
+                    checkBoardState()
+                }
+            }
+        )
+        
+        // 更新notes（已经自动擦除了相关候选数）
+        notes = result.notes
+        
+        // 更新currCell
         if (currCell.row == row && currCell.col == col) {
-            currCell = currCell.copy(value = new[row][col].value)
+            currCell = currCell.copy(value = result.board[row][col].value)
         }
-        if (value == 0) {
-            new[row][col].error = false
-            currCell.error = false
-            return new
-        }
-        // checking for mistakes
-        if (mistakesMethod.value == 1) {
-            // rule violations
-            new[row][col].error =
-                !sudokuUtils.isValidCellDynamic(new, new[row][col], boardEntity.type)
-            new.forEach { cells ->
-                cells.forEach { cell ->
-                    if (cell.value != 0 && cell.error) {
-                        cell.error = !sudokuUtils.isValidCellDynamic(new, cell, boardEntity.type)
-                    }
-                }
-            }
-        } else if (mistakesMethod.value == 2) {
-            // check with final solution
-            new = isValidCell(new, new[row][col])
+        
+        // 更新剩余使用次数
+        remainingUsesList = countRemainingUses(result.board)
+        
+        // 处理游戏完成
+        // 设计原则：游戏完成时立即触发完整的处理流程
+        // 不依赖 UI 层的 LaunchedEffect，确保在自动执行中也能正确处理
+        if (result.completed && !gameCompleted) {
+            gameCompleted = true
+            // 立即触发游戏完成处理
+            onGameComplete()
         }
 
-        currCell.error = currCell.value == 0
-        // updating mistakes limit
-        if (new[row][col].error) {
-            mistakesMade++
-            if (mistakesLimit.value) {
-                mistakesCount++
-                if (mistakesCount >= PreferencesConstants.MISTAKES_LIMIT) {
-                    pauseTimer()
-                    giveUp()
-                    endGame = true
-                }
-            }
-        }
-
-        gameCompleted = isCompleted(new)
-
-        if (autoEraseNotes.value) {
-            notes = autoEraseNotes(new, currCell)
-        }
-
-        return new
+        return result.board
     }
 
     private fun countRemainingUses(board: List<List<Cell>>): MutableList<Int> {
@@ -424,24 +478,60 @@ class GameViewModel @Inject constructor(
     }
 
     fun setNotes(notesToAdd: List<Note>?, notesToRemove: List<Note>?) {
+        // 使用GameStateManager统一处理候选数修改
+        val result = gameStateManager.modifyNotes(
+            board = gameBoard,
+            notes = notes,
+            notesToAdd = notesToAdd,
+            notesToRemove = notesToRemove,
+            mode = if (_isAutoExecuting.value) GameStateManager.ExecutionMode.AUTO 
+                   else GameStateManager.ExecutionMode.MANUAL,
+            onStateChanged = { change ->
+                // 只在手动模式下触发检测
+                if (!_isAutoExecuting.value) {
+                    checkBoardState()
+                }
+            }
+        )
+        
+        // 更新notes
+        notes = result.notes
+        
+        // 更新统计
         if (notesToAdd != null) {
-            notes = notes.plus(notesToAdd).distinct()
             notesTaken += notesToAdd.size
         }
-        if (notesToRemove != null) {
-            notes = notes.minus(notesToRemove)
-        }
+        
+        // 添加到撤销/重做历史
         undoRedoManager.addState(GameState(gameBoard, notes))
     }
 
     private fun setNote(number: Int) {
+        // 使用GameStateManager统一处理单个候选数切换
+        val result = gameStateManager.toggleNote(
+            board = gameBoard,
+            notes = notes,
+            row = currCell.row,
+            col = currCell.col,
+            value = number,
+            mode = if (_isAutoExecuting.value) GameStateManager.ExecutionMode.AUTO 
+                   else GameStateManager.ExecutionMode.MANUAL,
+            onStateChanged = { change ->
+                // 只在手动模式下触发检测
+                if (!_isAutoExecuting.value) {
+                    checkBoardState()
+                }
+            }
+        )
+        
+        // 更新统计（只在添加时计数）
         val note = Note(currCell.row, currCell.col, number)
-        notes = if (notes.contains(note)) {
-            removeNote(note.value, note.row, note.col)
-        } else {
+        if (!notes.contains(note) && result.notes.contains(note)) {
             notesTaken++
-            addNote(note.value, note.row, note.col)
         }
+        
+        // 更新notes
+        notes = result.notes
     }
 
     var timeText by mutableStateOf("00:00")
@@ -469,6 +559,9 @@ class GameViewModel @Inject constructor(
                     }
                 }
             }
+            
+            // 游戏开始时触发自动检测
+            checkBoardState()
         }
     }
 
@@ -583,41 +676,12 @@ class GameViewModel @Inject constructor(
         return board
     }
 
-    private fun isCompleted(board: List<List<Cell>> = getBoardNoRef()): Boolean {
-        if (solvedBoard.isEmpty()) solveBoard()
-        for (i in solvedBoard.indices) {
-            for (j in solvedBoard.indices) {
-                if (solvedBoard[i][j].value != board[i][j].value) {
-                    return false
-                }
-            }
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            val savedGame = savedGameRepository.get(boardEntity.uid)
-            if (savedGame != null) {
-                savedGameRepository.update(
-                    savedGame.copy(
-                        completed = true,
-                        giveUp = false,
-                        canContinue = false,
-                        finishedAt = ZonedDateTime.now()
-                    )
-                )
-            }
-        }
-        return true
-    }
+    // 注意：游戏完成检测现在由 GameStateManager.isGameCompleted() 负责
+    // 此函数已废弃，保留仅供参考或未来可能的其他用途
 
     fun computeNotes() {
-        notes = sudokuUtils.computeNotes(gameBoard, boardEntity.type)
+        notes = sudokuUtils.computeNotes(gameBoard, gameType)
         undoRedoManager.addState(GameState(gameBoard, notes))
-    }
-
-    private fun autoEraseNotes(board: List<List<Cell>> = getBoardNoRef(), cell: Cell): List<Note> {
-        if (currCell.row < 0 || currCell.col < 0) {
-            return notes
-        }
-        return sudokuUtils.autoEraseNotes(board, notes, cell, boardEntity.type)
     }
 
     private suspend fun saveGame() {
@@ -658,7 +722,7 @@ class GameViewModel @Inject constructor(
             val sudokuParser = SudokuParser()
             gameBoard = sudokuParser.parseBoard(
                 savedGame.currentBoard,
-                boardEntity.type
+                gameType
             )
             notes = sudokuParser.parseNotes(savedGame.notes)
 
@@ -672,7 +736,7 @@ class GameViewModel @Inject constructor(
                                 !sudokuUtils.isValidCellDynamic(
                                     board = gameBoard,
                                     cell = gameBoard[i][j],
-                                    type = boardEntity.type
+                                    type = gameType
                                 )
                         } else {
                             gameBoard[i][j].error =
@@ -713,7 +777,25 @@ class GameViewModel @Inject constructor(
         pauseTimer()
         currCell = Cell(-1, -1, 0)
         viewModelScope.launch(Dispatchers.IO) {
-            saveGame()
+            // 1. 更新 SavedGame 的完成状态（关键！）
+            val savedGame = savedGameRepository.get(boardEntity.uid)
+            if (savedGame != null) {
+                savedGameRepository.update(
+                    savedGame.copy(
+                        completed = true,
+                        giveUp = false,
+                        canContinue = false,
+                        finishedAt = ZonedDateTime.now(),
+                        timer = java.time.Duration.ofSeconds(duration.inWholeSeconds),
+                        currentBoard = SudokuParser().boardToString(gameBoard),
+                        notes = SudokuParser().notesToString(notes),
+                        mistakes = mistakesCount,
+                        lastPlayed = ZonedDateTime.now()
+                    )
+                )
+            }
+            
+            // 2. 插入游戏记录
             recordRepository.insert(
                 Record(
                     board_uid = boardEntity.uid,
@@ -797,7 +879,7 @@ class GameViewModel @Inject constructor(
                         1 -> {
                             // rules violations
                             new[i][j].error =
-                                !sudokuUtils.isValidCellDynamic(new, new[i][j], boardEntity.type)
+                                !sudokuUtils.isValidCellDynamic(new, new[i][j], gameType)
                         }
 
                         2 -> {
@@ -818,7 +900,7 @@ class GameViewModel @Inject constructor(
             _advancedHintData.emit(null)
             val hintSettings = runBlocking { appSettingsManager.advancedHintSettings.first() }
             val advancedHint = AdvancedHint(
-                type = boardEntity.type,
+                type = gameType,
                 board = gameBoard,
                 solvedBoard = solvedBoard,
                 notes = notes,
@@ -860,4 +942,153 @@ class GameViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * 检查盘面状态，触发自动提示检测
+     * 
+     * 设计原则：
+     * - 依赖显式的初始化状态，而非隐式的类型判断
+     * - 清晰的前置条件检查
+     */
+    private fun checkBoardState() {
+        // 1. 检查游戏是否已初始化完成（使用显式状态）
+        if (!_isInitialized.value) {
+            return
+        }
+        
+        // 2. 如果游戏未开始、已完成或正在自动执行，不进行检测
+        if (!gamePlaying || gameCompleted || _isAutoExecuting.value) {
+            return
+        }
+        
+        viewModelScope.launch(Dispatchers.Default) {
+            val hintSettings = runBlocking { appSettingsManager.advancedHintSettings.first() }
+            
+            // 只有设置了自动模式才进行检测
+            if (!hintSettings.hasAutoMode()) {
+                _hasAutoHint.emit(false)
+                return@launch
+            }
+            
+            // 创建只包含自动模式的设置
+            val autoSettings = createAutoOnlySettings(hintSettings)
+            
+            // 检测是否有可执行的自动操作
+            val advancedHint = com.kaajjo.libresudoku.core.qqwing.advanced_hint.AdvancedHint(
+                type = gameType,
+                board = gameBoard,
+                solvedBoard = solvedBoard,
+                notes = notes,
+                settings = autoSettings
+            )
+            
+            val hintData = advancedHint.getEasiestHint()
+            _hasAutoHint.emit(hintData != null)
+        }
+    }
+
+    /**
+     * 执行所有自动提示（循环执行直到没有可执行的自动操作）
+     * 
+     * 设计原则：
+     * 1. 循环执行直到没有可用提示或游戏完成
+     * 2. 不依赖固定迭代次数，而是依赖提示检测结果
+     * 3. 每次应用提示后立即检查游戏状态
+     */
+    fun executeAutoHints() {
+        viewModelScope.launch(Dispatchers.Main) {
+            _isAutoExecuting.emit(true)
+            
+            try {
+                val hintSettings = runBlocking { appSettingsManager.advancedHintSettings.first() }
+                val autoSettings = createAutoOnlySettings(hintSettings)
+                
+                // 循环执行，直到没有更多提示或游戏完成
+                while (!gameCompleted) {
+                    // 在后台线程检测提示
+                    val hintData = withContext(Dispatchers.Default) {
+                        com.kaajjo.libresudoku.core.qqwing.advanced_hint.AdvancedHint(
+                            type = gameType,
+                            board = gameBoard,
+                            solvedBoard = solvedBoard,
+                            notes = notes,
+                            settings = autoSettings
+                        ).getEasiestHint()
+                    }
+                    
+                    // 没有更多提示，退出循环
+                    if (hintData == null) break
+                    
+                    // 应用提示
+                    applyAutoHintDataInternal(hintData)
+                    
+                    // 游戏完成立即退出
+                    if (gameCompleted) break
+                    
+                    // 短暂延迟让UI更新
+                    kotlinx.coroutines.delay(150)
+                }
+                
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                // 退出自动执行模式并清除快进按钮
+                _isAutoExecuting.emit(false)
+                _hasAutoHint.emit(false)
+            }
+        }
+    }
+    
+    /**
+     * 内部方法：应用自动提示数据
+     * 使用ExecutionMode.AUTO，确保不触发递归检测
+     */
+    private fun applyAutoHintDataInternal(hintData: com.kaajjo.libresudoku.core.qqwing.advanced_hint.AdvancedHintData) {
+        val cells = hintData.targetCells
+        val notesToAdd = hintData.notesToAdd
+        val notesToRemove = hintData.notesToRemove
+        
+        // 先处理候选数修改
+        if (notesToAdd != null || notesToRemove != null) {
+            setNotes(notesToAdd, notesToRemove)
+        }
+        
+        // 再处理填入数字（不是 else if，可能需要同时处理）
+        if (cells != null && cells.isNotEmpty()) {
+            for (cell in cells) {
+                currCell = gameBoard[cell.row][cell.col]
+                digitFirstNumber = cell.value
+                gameBoard = setValueCell(cell.value, cell.row, cell.col)
+            }
+            undoRedoManager.addState(GameState(gameBoard, notes))
+        }
+    }
+    
+    /**
+     * 创建只包含自动模式的设置
+     */
+    private fun createAutoOnlySettings(settings: com.kaajjo.libresudoku.core.qqwing.advanced_hint.AdvancedHintSettings): com.kaajjo.libresudoku.core.qqwing.advanced_hint.AdvancedHintSettings {
+        return com.kaajjo.libresudoku.core.qqwing.advanced_hint.AdvancedHintSettings(
+            fullHouse = if (settings.fullHouse.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            nakedSingle = if (settings.nakedSingle.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            hiddenSingle = if (settings.hiddenSingle.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            checkWrongValue = if (settings.checkWrongValue.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            checkMissingOrWrongNote = if (settings.checkMissingOrWrongNote.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            lockedCandidates = if (settings.lockedCandidates.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            nakedSubsets = if (settings.nakedSubsets.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            hiddenSubsets = if (settings.hiddenSubsets.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            sueDeCoq = if (settings.sueDeCoq.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            xWings = if (settings.xWings.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            xyWings = if (settings.xyWings.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            xyzWings = if (settings.xyzWings.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            wWings = if (settings.wWings.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            fishPatterns = if (settings.fishPatterns.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            finnedFishVariants = if (settings.finnedFishVariants.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            xChain = if (settings.xChain.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            xyChain = if (settings.xyChain.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            aicType1 = if (settings.aicType1.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+            aicType2 = if (settings.aicType2.isAuto()) com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.ENABLED else com.kaajjo.libresudoku.core.qqwing.advanced_hint.HintMode.DISABLED,
+        )
+    }
+
 }
