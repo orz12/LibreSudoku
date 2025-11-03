@@ -2785,8 +2785,8 @@ class AdvancedHint(
             }
         }.distinct()
         val chainNodes = helpCells.distinct().filter { cell -> cell.value == 0 && cellNotesCache[Pair(cell.row, cell.col)]!!.contains(number) }
-            .map { ChainNode(it, number) }
-            .plus(fins.map { ChainNode(it, number, group = 1) })
+            .map { ChainNode(it, number, group = 1) }
+            .plus(fins.map { ChainNode(it, number, group = 2) })
         
         val chain = Chain(nodes = chainNodes, edges = emptyList())
 
@@ -2848,8 +2848,8 @@ class AdvancedHint(
             }
         }.distinct()
         val chainNodes = helpCells.distinct().filter { cell -> cell.value == 0 && cellNotesCache[Pair(cell.row, cell.col)]!!.contains(number) }
-            .map { ChainNode(it, number) }
-            .plus(fins.map { ChainNode(it, number, group = 1) })
+            .map { ChainNode(it, number, group = 1) }
+            .plus(fins.map { ChainNode(it, number, group = 2) })
         val chain = Chain(nodes = chainNodes, edges = emptyList())
         return AdvancedHintData(
             titleRes = variantName,

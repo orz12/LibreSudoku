@@ -7,8 +7,10 @@ import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -53,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
@@ -82,6 +85,7 @@ import com.kaajjo.libresudoku.ui.game.components.DefaultGameKeyboard
 import com.kaajjo.libresudoku.ui.game.components.DrawingCanvas
 import com.kaajjo.libresudoku.ui.game.components.DrawingState
 import com.kaajjo.libresudoku.ui.game.components.DrawingToolbar
+import com.kaajjo.libresudoku.ui.game.components.scaleResetIndicator
 import com.kaajjo.libresudoku.ui.game.components.NotesMenu
 import com.kaajjo.libresudoku.ui.game.components.SquareGameKeyboard
 import com.kaajjo.libresudoku.ui.game.components.ToolBarItem
@@ -565,7 +569,47 @@ fun GameBoard(
         onDrawingStateChange: ((DrawingState) -> DrawingState) -> Unit,
         remainingUse: Boolean
 ) {
-    Box {
+    // 缩放和平移状态
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+    
+    // 动画状态
+    val animatedScale by animateFloatAsState(
+        targetValue = scale,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale"
+    )
+    val animatedOffsetX by animateFloatAsState(
+        targetValue = offsetX,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "offsetX"
+    )
+    val animatedOffsetY by animateFloatAsState(
+        targetValue = offsetY,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "offsetY"
+    )
+    
+    Box(
+        modifier = Modifier
+            .scaleResetIndicator(scale = scale)
+            .graphicsLayer(
+                scaleX = animatedScale,
+                scaleY = animatedScale,
+                translationX = animatedOffsetX,
+                translationY = animatedOffsetY
+            )
+    ) {
         Column(modifier = Modifier.align(Alignment.Center)) {
             AnimatedVisibility(
                     visible = !viewModel.gamePlaying && !viewModel.endGame,
@@ -645,6 +689,17 @@ fun GameBoard(
                 drawingState = drawingState,
                 onAddPoint = { point -> onDrawingStateChange { it.addPoint(point) } },
                 onFinishPath = { onDrawingStateChange { it.finishPath() } },
+                onZoomChange = { newScale, newOffsetX, newOffsetY ->
+                    scale = newScale
+                    // 当缩小到原大时，自动回到原位置
+                    if (newScale <= 1f) {
+                        offsetX = 0f
+                        offsetY = 0f
+                    } else {
+                        offsetX = newOffsetX
+                        offsetY = newOffsetY
+                    }
+                },
                 enabled = drawingState.isDrawingMode,
                 alpha = if (drawingState.isDrawingMode) 1f else 0.5f
         )

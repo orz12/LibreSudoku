@@ -1,7 +1,10 @@
 package com.kaajjo.libresudoku.ui.game.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -16,6 +19,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 
@@ -28,6 +32,7 @@ fun DrawingCanvas(
     drawingState: DrawingState,
     onAddPoint: (Offset) -> Unit,
     onFinishPath: () -> Unit,
+    onZoomChange: (scale: Float, offsetX: Float, offsetY: Float) -> Unit = { _, _, _ -> },
     enabled: Boolean = true,
     alpha: Float = 1f
 ) {
@@ -39,32 +44,89 @@ fun DrawingCanvas(
             .onSizeChanged { canvasSize = it }
             .then(
                 if (enabled) {
-                    Modifier.pointerInput(canvasSize) {
-                        detectDragGestures(
-                            onDragStart = { offset ->
-                                // 将绝对坐标转换为相对坐标（0-1范围）
-                                if (canvasSize.width > 0 && canvasSize.height > 0) {
-                                    val relativeOffset = Offset(
-                                        offset.x / canvasSize.width,
-                                        offset.y / canvasSize.height
-                                    )
-                                    onAddPoint(relativeOffset)
+                    Modifier.pointerInput(Unit) {
+                        // 缩放和平移状态（局部状态，只在手势过程中使用）
+                        var scale = 1f
+                        var offsetX = 0f
+                        var offsetY = 0f
+                        
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            var pointer = down
+                            var isDrawing = false
+                            var isMultiTouch = false
+                            
+                            do {
+                                val event = awaitPointerEvent()
+                                val pointerCount = event.changes.size
+                                
+                                if (pointerCount > 1) {
+                                    // 双指或多指操作 - 缩放和平移
+                                    isMultiTouch = true
+                                    if (isDrawing) {
+                                        // 如果正在绘画，结束绘画
+                                        onFinishPath()
+                                        isDrawing = false
+                                    }
+                                    
+                                    val zoomChange = event.calculateZoom()
+                                    val centroid = event.calculateCentroid(useCurrent = true)
+                                    val previousCentroid = event.calculateCentroid(useCurrent = false)
+                                    
+                                    // 更新缩放，限制最小缩放为1.0
+                                    val newScale = (scale * zoomChange).coerceAtLeast(1f)
+                                    
+                                    // 计算平移
+                                    val pan = centroid - previousCentroid
+                                    
+                                    // 应用缩放和平移
+                                    scale = newScale
+                                    offsetX += pan.x
+                                    offsetY += pan.y
+                                    
+                                    // 通知外部
+                                    onZoomChange(scale, offsetX, offsetY)
+                                    
+                                    event.changes.forEach { it.consume() }
+                                } else if (!isMultiTouch && pointerCount == 1) {
+                                    // 单指操作 - 绘画
+                                    val change = event.changes[0]
+                                    
+                                    if (!isDrawing) {
+                                        // 开始绘画
+                                        isDrawing = true
+                                        val position = change.position
+                                        
+                                        if (canvasSize.width > 0 && canvasSize.height > 0) {
+                                            val relativeOffset = Offset(
+                                                position.x / canvasSize.width,
+                                                position.y / canvasSize.height
+                                            )
+                                            onAddPoint(relativeOffset)
+                                        }
+                                    } else if (change.positionChanged()) {
+                                        // 继续绘画
+                                        val position = change.position
+                                        
+                                        if (canvasSize.width > 0 && canvasSize.height > 0) {
+                                            val relativeOffset = Offset(
+                                                position.x / canvasSize.width,
+                                                position.y / canvasSize.height
+                                            )
+                                            onAddPoint(relativeOffset)
+                                        }
+                                    }
+                                    
+                                    change.consume()
+                                    pointer = change
                                 }
-                            },
-                            onDrag = { change, _ ->
-                                // 将绝对坐标转换为相对坐标（0-1范围）
-                                if (canvasSize.width > 0 && canvasSize.height > 0) {
-                                    val relativeOffset = Offset(
-                                        change.position.x / canvasSize.width,
-                                        change.position.y / canvasSize.height
-                                    )
-                                    onAddPoint(relativeOffset)
-                                }
-                            },
-                            onDragEnd = {
+                            } while (event.changes.any { it.pressed })
+                            
+                            // 手势结束
+                            if (isDrawing) {
                                 onFinishPath()
                             }
-                        )
+                        }
                     }
                 } else {
                     Modifier
