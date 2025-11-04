@@ -221,14 +221,22 @@ fun GameScreen(viewModel: GameViewModel = hiltViewModel(), navigator: Destinatio
     val hasAutoHint by viewModel.hasAutoHint.collectAsStateWithLifecycle(false)
     val isAutoExecuting by viewModel.isAutoExecuting.collectAsStateWithLifecycle(false)
     
+    // 等待初始化完成的状态
+    val isInitialized by viewModel.isInitialized.collectAsState()
+    
+    // 控制新手教程显示的状态
+    var showFirstGameDialog by rememberSaveable { mutableStateOf(false) }
+    
     if (keepScreenOn) {
         KeepScreenOn()
     }
 
-    if (firstGame) {
+    // 新手教程对话框
+    if (showFirstGameDialog) {
         viewModel.pauseTimer()
         FirstGameDialog(
                 onFinished = {
+                    showFirstGameDialog = false
                     viewModel.setFirstGameFalse()
                     viewModel.startTimer()
                 }
@@ -535,11 +543,16 @@ fun GameScreen(viewModel: GameViewModel = hiltViewModel(), navigator: Destinatio
 
     LaunchedEffect(viewModel.mistakesMethod) { viewModel.checkMistakesAll() }
 
-    // 等待初始化完成后再启动游戏
-    val isInitialized by viewModel.isInitialized.collectAsState()
+    // 初始化完成后的统一处理逻辑
     LaunchedEffect(isInitialized) {
         if (isInitialized && !viewModel.endGame && !viewModel.gameCompleted) {
-            viewModel.startTimer()
+            if (firstGame) {
+                // 首次游戏：显示新手教程（教程内部会暂停计时器）
+                showFirstGameDialog = true
+            } else {
+                // 非首次游戏：直接启动计时器
+                viewModel.startTimer()
+            }
         }
     }
 

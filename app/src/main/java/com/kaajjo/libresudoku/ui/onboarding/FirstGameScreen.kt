@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -155,7 +156,19 @@ fun FirstGameScreen() {
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 modifier = Modifier.weight(1f),
-                text = stringResource(R.string.advanced_hint_in_development)
+                text = stringResource(R.string.toolbar_advanced_hint_description)
+            )
+        }
+        ToolRow {
+            ToolbarItem(
+                modifier = Modifier.weight(toolbarWeight),
+                painter = rememberVectorPainter(Icons.Rounded.FastForward),
+                onClick = { }
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                modifier = Modifier.weight(1f),
+                text = stringResource(R.string.toolbar_fast_forward_description)
             )
         }
         Spacer(modifier = Modifier.height(8.dp))

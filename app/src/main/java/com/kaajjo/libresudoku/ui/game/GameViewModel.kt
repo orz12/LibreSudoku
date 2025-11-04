@@ -536,7 +536,7 @@ class GameViewModel @Inject constructor(
 
     var timeText by mutableStateOf("00:00")
     private var duration = Duration.ZERO
-    private lateinit var timer: Timer
+    private var timer: Timer? = null
     var gamePlaying by mutableStateOf(false)
 
     fun startTimer() {
@@ -544,6 +544,9 @@ class GameViewModel @Inject constructor(
             gamePlaying = true
             val updateRate = 50L
 
+            // 如果已有计时器在运行，先取消
+            timer?.cancel()
+            
             timer = fixedRateTimer(initialDelay = updateRate, period = updateRate) {
                 val prevTime = duration
 
@@ -567,7 +570,7 @@ class GameViewModel @Inject constructor(
 
     fun pauseTimer() {
         gamePlaying = false
-        timer.cancel()
+        timer?.cancel()
     }
 
     fun toolbarClick(item: ToolBarItem) {

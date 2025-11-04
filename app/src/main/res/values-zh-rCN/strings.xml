@@ -66,8 +66,10 @@
     <string name="onboard_recommendation_prefs">我们建议您看一下设置选项卡，您可以根据自己的需要定制应用程序</string>
     <string name="action_start">开始</string>
     <string name="toolbar_undo_description">撤销</string>
-    <string name="toolbar_notes_description">启用候选数输入（铅笔图标）</string>
+    <string name="toolbar_notes_description">启用候选数输入，长按可打开菜单</string>
     <string name="toolbar_hint_description">提示该格答案。可在设置中禁用</string>
+    <string name="toolbar_advanced_hint_description">进阶提示：获取解题技巧。可在设置中自定义</string>
+    <string name="toolbar_fast_forward_description">进阶提示：自动连续执行，可在设置中自定义</string>
     <string name="first_game_dialog_title">快速浏览</string>
     <string name="toolbar_erase_description">清空该格中的所有数</string>
     <string name="action_stay">留下</string>
@@ -348,7 +350,7 @@
     <string name="app_version">版本 %1$s (%2$s)</string>
     <string name="donation_description">永无广告的免费应用。您可以通过下面支持</string>
     <string name="perf_other_summary">记住上次类型和难度，保持屏幕常亮，重置状态…</string>
-    <string name="hint_wrong_value_title">错误的数值</string>
+    <string name="hint_wrong_value_title">错误的填数</string>
     <string name="hint_wron_value_detail">%2$s 格内的 %1$s 错误</string>
     <string name="nav_back">返回</string>
     <string name="action_apply">应用</string>
@@ -368,11 +370,12 @@
     <string name="font_size_automatic">自动</string>
     <string name="advanced_hint_title">进阶提示</string>
     <string name="advanced_hint_in_development">更多进阶技巧正在开发中…</string>
+    <string name="advanced_hint_description">获取解题技巧和策略提示。您可以在设置中自定义要使用的技巧</string>
     <string name="check_for_update_error_summary">请检查您的连接或稍后重试（可能已超过GitHub API速率限制）</string>
     <string name="check_for_update_using_latest">当前是最新的</string>
     <string name="hint_naked_single_detail">单元格%1$s只有唯一的候选数%2$s可供填入</string>
     <string name="hint_hidden_single_detail">单元格%1$s是所在行/列/宫中，唯一能够填入候选项%2$s的格</string>
-    <string name="settings_advanced_hint_category_techniques">技巧</string>
+    <string name="settings_advanced_hint_category_techniques">技巧（可设置为：禁用 / 手动 / 自动）</string>
     <string name="update_found_version">发现更新%1$s</string>
     <string name="whats_new_in_version">%1$s中有什么新功能</string>
     <string name="check_for_updates_error">无法检查更新</string>
